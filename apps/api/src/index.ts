@@ -9,6 +9,7 @@ import { createContext } from './context';
 import { createApp } from './app';
 import { allRoutes } from './routes';
 import { applyVaultSettings } from './services/vault';
+import { scheduleNightlyBackups } from './services/nightly';
 
 async function main() {
   const here = path.dirname(fileURLToPath(import.meta.url));
@@ -19,6 +20,7 @@ async function main() {
   const ctx = createContext(handle.db, config, systemClock);
   await applyVaultSettings(ctx);
   ctx.vaultKeys.startSweeper();
+  if (process.env.BACKUPS_ENABLED !== 'false') scheduleNightlyBackups(handle.db, config.backupDir, config.backupRetentionDays);
   const app = createApp(ctx, allRoutes);
   const server = app.listen(config.port, () => {
     console.log(`RackMap listening on :${config.port} (db: ${handle.kind})`);

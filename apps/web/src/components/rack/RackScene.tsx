@@ -144,6 +144,7 @@ export function RackScene({ rack, devices, templates, links, overlay, onContextM
       height={g.height}
       viewBox={`0 0 ${g.width} ${g.height}`}
       className="block select-none"
+      style={{ willChange: 'transform', contain: 'paint' }}
       role="group"
       aria-label={`Rack ${rack?.name ?? ''}`}
       onDragOver={onDragOver}

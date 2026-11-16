@@ -86,15 +86,11 @@ export const Jack = memo(function Jack({ port, x, y, s, linked, offline, led = t
     <g>
       {body}
       {showLed && (
-        <circle
-          cx={x + s * 0.42}
-          cy={y - s * 0.62}
-          r={ledR}
-          fill={ledColor}
-          className={blink ? 'led-activity' : undefined}
-          style={blink ? { animationDelay: delayFor(port.id) } : undefined}
-          filter={linked ? 'url(#rm-glow)' : undefined}
-        />
+        <g className={blink ? 'led-activity' : undefined} style={blink ? { animationDelay: delayFor(port.id) } : undefined}>
+          {/* A soft halo instead of an SVG blur filter: filters on hundreds of animated LEDs are very expensive to paint. */}
+          {linked && <circle cx={x + s * 0.42} cy={y - s * 0.62} r={ledR * 2.2} fill={ledColor} fillOpacity={0.22} />}
+          <circle cx={x + s * 0.42} cy={y - s * 0.62} r={ledR} fill={ledColor} />
+        </g>
       )}
     </g>
   );

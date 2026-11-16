@@ -117,6 +117,7 @@ function Board({ projects, onOpen, onMove, onQuickAdd }: {
 
   return (
     <div className="grid min-h-full gap-4 md:grid-cols-3" style={completeOpen ? undefined : { gridTemplateColumns: 'repeat(2, minmax(0, 1fr)) minmax(180px, 0.45fr)' }}>
+      <p id="card-kbd-hint" className="sr-only">Enter opens the project. M opens the status menu. Alt plus Up or Down reorders within the column.</p>
       {PROJECT_STATUSES.map((status) => {
         const list = cols[status];
         const collapsed = status === 'complete' && !completeOpen;
@@ -183,7 +184,7 @@ function Card({ p, dragging, onOpen, onDragStart, onDragEnd, menuOpen, setMenu, 
   const links = linkLabel(p);
   return (
     <div ref={ref} draggable onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', p.id); onDragStart(); }} onDragEnd={onDragEnd}
-      tabIndex={0} role="button" aria-label={`${p.title}, ${p.priority} priority${p.due_date ? `, due ${p.due_date}` : ''}. Enter opens, M moves, Alt+Up/Down reorders.`}
+      tabIndex={0} role="button" aria-describedby="card-kbd-hint"
       onClick={onOpen}
       onKeyDown={(e) => {
         if (e.key === 'Enter') onOpen();

@@ -25,7 +25,8 @@ export function VaultIndicator() {
   }, [refresh]);
   if (!status) return null;
   const unlocked = status.configured && status.unlocked;
-  const label = !status.configured ? 'Vault not set up' : unlocked ? 'Vault unlocked. Click to lock.' : 'Vault locked. Click to unlock.';
+  // Accessible name starts with the visible text (WCAG 2.5.3 label in name).
+  const label = !status.configured ? 'No vault: set one up in Settings' : unlocked ? 'Unlocked vault: click to lock' : 'Locked vault: click to unlock';
   return (
     <button
       className={`btn btn-sm ${unlocked ? 'border-amber-500/60 text-amber-600 dark:text-amber-300' : ''}`}
@@ -52,6 +53,7 @@ export function Layout() {
   useEffect(() => setMenu(false), [loc.pathname]);
   return (
     <div className="flex h-screen flex-col overflow-hidden">
+      <a href="#main" className="sr-only z-50 rounded bg-sky-600 px-3 py-1.5 text-white focus:not-sr-only focus:absolute focus:left-2 focus:top-2">Skip to content</a>
       <header className="no-print z-30 flex h-12 shrink-0 items-center gap-2 border-b border-slate-200 bg-white/80 px-3 backdrop-blur dark:border-slate-800 dark:bg-[#0d121c]/90">
         <NavLink to="/" className="mr-2 flex items-center gap-2 font-semibold" aria-label="RackMap home">
           <Logo size={24} /> <span className="hidden md:inline">RackMap</span>
@@ -82,9 +84,9 @@ export function Layout() {
           )}
         </div>
       </header>
-      <div className="relative min-h-0 flex-1">
+      <main id="main" tabIndex={-1} className="relative min-h-0 flex-1 outline-none">
         <Outlet />
-      </div>
+      </main>
     </div>
   );
 }

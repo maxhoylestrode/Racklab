@@ -127,3 +127,11 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **List view:** clickable column headers sort (Title, Status, Priority, Due, Updated); the default sort is in progress, not started, complete, then priority high to low, then due date. Filters: status, priority, linked or unlinked, device (which also matches projects linked through that device's services), tag and free text. The status cell is an inline dropdown.
 - **Link picker** searches device names, roles, hostnames and OS plus service names, kinds and host device, ignoring filler words ("on", "the"). So "CT on the server" finds the R420 and its containers.
 - **Archived** projects disappear from the board and list but still appear in Docs search and exports. Unarchive from the project drawer.
+
+## Polish
+
+- **Nightly backups** run at 03:00 server time, plus once a minute after start if today's file is missing. Each one is written as `rackmap-YYYY-MM-DD.json` (via a temp file and rename, mode 600) to `BACKUP_DIR`. Files older than `BACKUP_RETENTION_DAYS` (default 14) that match that name are deleted; other files in the folder are never touched. `BACKUPS_ENABLED=false` turns this off.
+- **PNG and SVG export** serialise the live rack SVG (defs included, inline rename removed, LEDs frozen on, dark background added). PNG renders at 2x.
+- **Performance:** lit LEDs use a translucent halo circle instead of an SVG blur filter, and the rack SVG gets its own compositor layer (`will-change: transform; contain: paint`). Measured in headless Edge with 60 devices and 100 cables: 141 fps scrolling at 44 px/U, 143 fps at 80 px/U (display cap 144).
+- **Accessibility:** Lighthouse accessibility scores 100 on the rack, topology, docs, projects, settings and audit pages, and on the setup screen. Changes made: a skip link and `<main>` landmark; dark-mode secondary text lifted to slate-400 for contrast; the primary button darkened to sky-700; the vault button's accessible name starts with its visible text; project cards take their name from their content, with the keyboard hint in `aria-describedby`. Every interactive SVG element (devices, ports in wire mode, cables, topology cards) is focusable with a label.
+- **Audit page** shows the last 500 entries with text and type filters.
