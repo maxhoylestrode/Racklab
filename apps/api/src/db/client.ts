@@ -41,6 +41,10 @@ export async function openDb(opts: { url?: string; pgliteDir?: string; memory?: 
     await migrate(db, { migrationsFolder: migrationsFolder() });
     return { db: db as unknown as DB, close: () => pool.end(), kind: 'postgres' };
   }
+  if (process.env.NODE_ENV === 'production' && !opts.memory && !(opts.pgliteDir ?? process.env.PGLITE_DIR)) {
+    // Never silently run production on a throwaway in-memory database.
+    throw new Error('DATABASE_URL must be set in production (or PGLITE_DIR for a single-container install).');
+  }
   const { PGlite } = await import('@electric-sql/pglite');
   const { drizzle } = await import('drizzle-orm/pglite');
   const { migrate } = await import('drizzle-orm/pglite/migrator');

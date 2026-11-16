@@ -135,3 +135,10 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **Performance:** lit LEDs use a translucent halo circle instead of an SVG blur filter, and the rack SVG gets its own compositor layer (`will-change: transform; contain: paint`). Measured in headless Edge with 60 devices and 100 cables: 141 fps scrolling at 44 px/U, 143 fps at 80 px/U (display cap 144).
 - **Accessibility:** Lighthouse accessibility scores 100 on the rack, topology, docs, projects, settings and audit pages, and on the setup screen. Changes made: a skip link and `<main>` landmark; dark-mode secondary text lifted to slate-400 for contrast; the primary button darkened to sky-700; the vault button's accessible name starts with its visible text; project cards take their name from their content, with the keyboard hint in `aria-describedby`. Every interactive SVG element (devices, ports in wire mode, cables, topology cards) is focusable with a label.
 - **Audit page** shows the last 500 entries with text and type filters.
+
+## Deployment
+
+- **Production database guard:** with `NODE_ENV=production`, the API refuses to start unless `DATABASE_URL` (or, for a deliberate single-container install, `PGLITE_DIR`) is set. It never silently runs on an in-memory database.
+- **Image verification:** Docker is not installed on the build machine, so the image itself was not built here. The `prod-deps` stage (`npm ci --omit=dev --workspace apps/api`) and the runtime layout (`apps/api/dist`, `apps/api/drizzle`, `apps/web/dist`) were reproduced by hand and started with `NODE_ENV=production`. It served `/healthz` with 200, the SPA, and the strict CSP headers, and it refused to start without a database. The first real `docker build` / CapRover deploy is still to be done on the homelab.
+- **Persistent data:** CapRover maps `/data` (backups, and PGlite data if used). Postgres runs as its own one-click app.
+- **Screenshots** in `docs/screenshots` were captured from the built app with the sample lab and example IPs.
