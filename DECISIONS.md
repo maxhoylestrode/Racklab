@@ -117,3 +117,13 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **IP plan** sorts IPv4 addresses numerically (IPv6 after). Its "status" filter is the owning device's status.
 - **Inventory** prints through the browser with print CSS that hides the app chrome. Shelves are left out.
 - **VLAN management** lives on the Docs page, and a VLAN can also be created inline from the IP dialog.
+
+## Projects
+
+- **Board:** HTML5 drag-and-drop between and within columns. A blue insertion bar shows the drop position, and the board reorders optimistically before syncing with the server's renumbering. Keyboard alternative: focus a card, press M (or use its menu button) for the status menu, and Alt+Up/Down to reorder within a column.
+- **Complete column** starts collapsed (narrow, with a count) and still accepts drops. Expanding it shows the completed cards.
+- **Quick add** at the top of each open column creates a project with just a title in that column. The collapsed Complete column has none.
+- **Overdue** means a due date before today on a project that is not complete. It shows red on cards and in the list.
+- **List view:** clickable column headers sort (Title, Status, Priority, Due, Updated); the default sort is in progress, not started, complete, then priority high to low, then due date. Filters: status, priority, linked or unlinked, device (which also matches projects linked through that device's services), tag and free text. The status cell is an inline dropdown.
+- **Link picker** searches device names, roles, hostnames and OS plus service names, kinds and host device, ignoring filler words ("on", "the"). So "CT on the server" finds the R420 and its containers.
+- **Archived** projects disappear from the board and list but still appear in Docs search and exports. Unarchive from the project drawer.
