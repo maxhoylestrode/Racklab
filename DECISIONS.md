@@ -86,3 +86,12 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **Device status** visuals: offline dims LEDs and adds a grey overlay; planned is drawn translucent with a dashed outline.
 - **Project badges** sit at the device's top right, with the count in an SVG `<title>` tooltip.
 - **Search** in the top bar dims devices whose name, hostname, role or tags do not match.
+
+## Wiring
+
+- **Cable routing:** each cable leaves rack gear along the device's lower lip and loose gear at its port's height. It runs sideways with a gravity sag (a cubic curve, dip proportional to length, capped at 14 px) into a vertical lane beside the rack, then mirrors into the far port. The lane side is the one nearer the midpoint of the two ports.
+- **Lanes:** each side has as many 7 px lanes as fit in its margin. Cables are routed longest first, and each takes the lane with the fewest cables overlapping its vertical span (ties go to the inner lane).
+- **Wire mode** turns every visible port into a focusable button (Enter or Space picks it) with a pulsing target. Picking a port that already has a cable warns straight away instead of waiting for the second click. A dashed rubber band follows the pointer from the first port. Escape cancels the pending cable, and a second Escape leaves wire mode.
+- **New cables** default to cat6 blue. A speed mismatch is shown as a warning toast and in the cable inspector, never as an error.
+- **Dim unrelated** fades cables that do not touch the selected device. **Show cables** hides cables but wire mode still works.
+- **Fibre** cables use the same stroke for now; the type is shown in the tooltip and inspector.

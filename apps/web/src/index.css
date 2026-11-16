@@ -11,6 +11,8 @@
   }
   :focus-visible { @apply outline-none ring-2 ring-sky-400 ring-offset-1 ring-offset-transparent; }
   svg :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+  /* Cables show focus through their endpoint rings instead of a bounding-box outline. */
+  svg path[role='button']:focus-visible { outline: none; }
 }
 
 @layer components {

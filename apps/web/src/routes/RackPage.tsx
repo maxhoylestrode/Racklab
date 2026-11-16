@@ -126,7 +126,7 @@ export function RackPage() {
   if (!loaded) return <div className="p-6 text-sm text-slate-500">Loading lab…</div>;
 
   return (
-    <div className="flex h-full">
+    <div className="relative flex h-full">
       <Library />
       <div className="flex min-w-0 flex-1 flex-col">
         {/* top bar */}
@@ -162,13 +162,13 @@ export function RackPage() {
             <input className="input w-44 py-1 pl-7" placeholder="Search devices" value={ui.search} onChange={(e) => ui.setSearch(e.target.value)} aria-label="Search devices" />
           </div>
         </div>
+        <div className="relative min-h-0 flex-1">
         {ui.wireMode && (
-          <div className="no-print border-b border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs text-sky-700 dark:text-sky-300" role="status">
+          <div className="no-print pointer-events-none absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-full border border-sky-500/40 bg-sky-950/90 px-4 py-1 text-xs text-sky-200 shadow-lg" role="status">
             {wiring.pending ? 'Now click the port at the other end. Escape cancels.' : 'Wire mode: click a port to start a cable.'}
           </div>
         )}
-
-        <div className="relative min-h-0 flex-1 overflow-auto" onClick={() => setMenu(null)}>
+        <div className="h-full overflow-auto" onClick={() => setMenu(null)}>
           {!rack ? (
             <div className="p-8"><Empty title="No rack yet" action={<button className="btn btn-primary" onClick={() => setNewRack(true)}>Create a rack</button>}>Create a rack, then drag devices from the library on the left.</Empty></div>
           ) : (
@@ -192,6 +192,7 @@ export function RackPage() {
               Empty rack. Drag a switch or server from the library on the left to get started.
             </div>
           )}
+        </div>
         </div>
       </div>
 
