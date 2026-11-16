@@ -24,3 +24,13 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **Settings** live in a single-row `app_settings` table. The vault auto-lock timeout is capped at 10 minutes, the spec's maximum.
 - **Projects** get an `archived` flag for the Archive action in 11a. `due_date` is stored as an ISO `YYYY-MM-DD` string.
 - **Vault recovery** stores its own KDF params next to the second wrapped copy of the data key.
+
+## Auth
+
+- **Password hashing:** argon2id via libsodium's `crypto_pwhash_str` (`libsodium-wrappers-sumo`), opslimit 3, 64 MiB. Using one well-known library for both auth and vault crypto avoids a native `argon2` build (npm 11 blocks install scripts by default).
+- **Rate limiting detail:** failures within a 15 minute window impose a 1 s, 2 s, 4 s, 8 s backoff before the next attempt; the 5th failure locks that IP until the window ends. A successful login clears the counter. Requests during backoff or lockout get `429` with `Retry-After`.
+- **CSRF:** a random token per session, sent in a readable `rm_csrf` cookie and returned by the SPA in `X-CSRF-Token`. The server checks header == cookie == the session's stored token. Setup and login are exempt (no session yet; the session cookie is `SameSite=Strict`).
+- **`GET /api/auth/status`** (unauthenticated) was added so the SPA can tell whether to show setup or login. **`POST /api/auth/change-password`** backs the Settings page.
+- **Secure cookie flag** follows `COOKIE_SECURE` (default `true` in production) so plain-HTTP local dev still works.
+- **`trust proxy`** is set to loopback and private ranges so `req.ip` is the real client behind Nginx Proxy Manager and CapRover.
+- **CSP** allows no inline scripts or styles. React sets style properties through the DOM, which CSP does not block.
