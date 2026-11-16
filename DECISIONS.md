@@ -46,3 +46,21 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **`POST /vault/touch`** lets the UI check that the vault is still unlocked (and refresh its idle timer) without revealing anything.
 - **Locked vault responses** use HTTP `423 Locked` with code `vault_locked`, so the UI knows to prompt for the master password.
 - **Key store** is per process. Restarting the server locks every vault, which is the safe default.
+
+## Core API
+
+- **`GET /devices`** returns every device with its `ports` embedded. A homelab is small and the rack view needs all ports for wiring, so one call beats N+1.
+- **Unplaced devices:** a device with no rack and no shelf sits in the unracked tray. This applies to rack-mount devices too (for example, a planned switch not yet installed).
+- **Changing a device's template** rebuilds its ports from the new template. Ports whose labels match keep their id and their cable; the rest are removed with their cables.
+- **`POST /devices/:id/duplicate`** (for the context menu) copies the device and its per-device port customisations into the unracked tray.
+- **Rack shrink guard:** `PATCH /racks/:id` refuses a smaller `total_units` that would cut off a device.
+- **Custom template edits:** height and form factor cannot change while devices use the template (it would invalidate placements). Other fields can.
+- **IP warnings** are computed server-side on every IP read: `duplicate_ip` (the same host address on another device) and `outside_vlan_subnet` (Postgres `inet <<= cidr`). Each device has at most one primary IP: setting one clears the others.
+- **Services:** a parent must be on the same device and cannot be a descendant (no cycles). Moving a service to another device moves its children with it.
+- **Notes search** combines Postgres full-text (`websearch_to_tsquery('simple')`) with substring matching, so partial words still hit.
+- **Credentials:** writing any secret field needs an unlocked vault (`423` otherwise). Metadata edits (label, username, URL) do not. TOTP seeds are normalised (spaces and padding removed, uppercased). The 6-digit TOTP code is computed in the browser from the revealed seed.
+- **Projects:** `GET /projects/badges` returns open-project counts per device (including through the device's services) for rack badges. `GET /projects?device_id=` covers the device and its services. A status change through `PATCH` appends to the end of the target column. `POST /projects/:id/move` places at an exact index and renumbers both affected columns in one transaction.
+- **Export** includes `vault_meta` (wrapped keys only) so encrypted credentials can be restored. Sessions, login attempts and the app password are not exported.
+- **Import** validates the whole file (Zod structure, references between tables, link uniqueness, rack bounds and overlaps), then replaces all lab data in a single transaction. Built-in templates are matched by `key` to this install's built-ins. Every unlocked vault is locked after an import.
+- **Seed** runs at startup only when no seed has ever been loaded and there are no racks (`SKIP_SEED=true` disables it). Each seeded row is recorded as a `seed.entity` audit entry, which is what Settings → "Delete seed data" removes. The router's cable to Switch 1 uses its `LAN 1` port.
+- **Settings** additionally exposes `seed_loaded` / `seed_present`. `GET /api/audit` returns the last 500 entries.

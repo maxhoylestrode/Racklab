@@ -4,6 +4,7 @@ import { loadConfig } from './config';
 import { systemClock } from './clock';
 import { openDb } from './db/client';
 import { ensureBuiltins } from './db/bootstrap';
+import { seedOnFirstRun } from './db/seed';
 import { createContext } from './context';
 import { createApp } from './app';
 import { allRoutes } from './routes';
@@ -14,6 +15,7 @@ async function main() {
   const config = loadConfig({ webDist: process.env.WEB_DIST ?? path.resolve(here, '../../web/dist') });
   const handle = await openDb();
   await ensureBuiltins(handle.db);
+  if (process.env.SKIP_SEED !== 'true' && (await seedOnFirstRun(handle.db))) console.log('Loaded seed lab (Home Rack)');
   const ctx = createContext(handle.db, config, systemClock);
   await applyVaultSettings(ctx);
   ctx.vaultKeys.startSweeper();
