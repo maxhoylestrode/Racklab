@@ -1,10 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
+import { App } from './App';
+import { applyMotion, applyTheme, useUi } from './store/ui';
 
-function App() {
-  return <div className="min-h-screen bg-slate-950 text-slate-100 p-8">RackMap</div>;
-}
+applyTheme(useUi.getState().theme);
+applyMotion(useUi.getState().reducedMotion);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

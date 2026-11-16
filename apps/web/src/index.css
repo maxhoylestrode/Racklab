@@ -1,3 +1,82 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
+  body {
+    @apply bg-slate-100 text-slate-900 antialiased dark:bg-[#0b0f17] dark:text-slate-100;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  :focus-visible { @apply outline-none ring-2 ring-sky-400 ring-offset-1 ring-offset-transparent; }
+  svg :focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition
+      border-slate-300 bg-white text-slate-800 hover:bg-slate-50
+      dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-100 dark:hover:bg-slate-700/80
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary { @apply border-sky-600 bg-sky-600 text-white hover:bg-sky-500 dark:border-sky-500 dark:bg-sky-600 dark:hover:bg-sky-500; }
+  .btn-danger { @apply border-rose-600 bg-rose-600 text-white hover:bg-rose-500 dark:border-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500; }
+  .btn-ghost { @apply border-transparent bg-transparent hover:bg-slate-200/70 dark:bg-transparent dark:hover:bg-slate-800; }
+  .btn-sm { @apply px-2 py-1 text-xs; }
+  .btn-on { @apply border-sky-500 bg-sky-500/15 text-sky-700 dark:text-sky-300; }
+  .input {
+    @apply w-full rounded-md border px-2.5 py-1.5 text-sm transition
+      border-slate-300 bg-white text-slate-900 placeholder:text-slate-400
+      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500
+      focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30;
+  }
+  .label { @apply mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400; }
+  .card { @apply rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900/70; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium border-slate-300 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300; }
+  .kbd { @apply rounded border border-slate-300 bg-slate-50 px-1 font-mono text-[10px] dark:border-slate-600 dark:bg-slate-800; }
+  .table-base { @apply w-full text-left text-sm; }
+  .table-base th { @apply border-b border-slate-200 px-2 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400; }
+  .table-base td { @apply border-b border-slate-100 px-2 py-1.5 align-middle dark:border-slate-800/70; }
+  .prose-rm { @apply text-sm leading-relaxed; }
+  .prose-rm h1 { @apply mb-2 mt-3 text-lg font-semibold; }
+  .prose-rm h2 { @apply mb-2 mt-3 text-base font-semibold; }
+  .prose-rm h3 { @apply mb-1 mt-2 text-sm font-semibold; }
+  .prose-rm p { @apply my-2; }
+  .prose-rm ul { @apply my-2 list-disc pl-5; }
+  .prose-rm ol { @apply my-2 list-decimal pl-5; }
+  .prose-rm li.task { @apply -ml-5 list-none; }
+  .prose-rm a { @apply text-sky-600 underline dark:text-sky-400; }
+  .prose-rm code { @apply rounded bg-slate-200/70 px-1 py-0.5 font-mono text-[12px] dark:bg-slate-800; }
+  .prose-rm pre { @apply my-2 overflow-x-auto rounded-lg bg-slate-900 p-3 text-[12px] text-slate-100; }
+  .prose-rm pre code { @apply bg-transparent p-0; }
+  .prose-rm blockquote { @apply my-2 border-l-4 border-slate-300 pl-3 text-slate-600 dark:border-slate-700 dark:text-slate-400; }
+  .prose-rm table { @apply my-2 text-xs; }
+  .prose-rm th, .prose-rm td { @apply border border-slate-300 px-2 py-1 dark:border-slate-700; }
+  .tok-k { @apply text-fuchsia-400; }
+  .tok-s { @apply text-emerald-400; }
+  .tok-n { @apply text-amber-300; }
+  .tok-c { @apply italic text-slate-500; }
+}
+
+/* ---- rack scene ---- */
+@keyframes led-blink { 0%, 86%, 100% { opacity: 1; } 90% { opacity: 0.25; } 94% { opacity: 0.9; } 97% { opacity: 0.35; } }
+.led-activity { animation: led-blink 2.6s infinite steps(1, end); }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+.shake { animation: shake 0.35s ease-in-out; }
+@keyframes port-glow { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+.port-target { animation: port-glow 1.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion='no-preference']) .led-activity,
+  html:not([data-motion='no-preference']) .shake,
+  html:not([data-motion='no-preference']) .port-target { animation: none !important; }
+}
+html[data-motion='reduce'] .led-activity,
+html[data-motion='reduce'] .shake,
+html[data-motion='reduce'] .port-target { animation: none !important; }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; color: black !important; }
+}

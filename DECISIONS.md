@@ -64,3 +64,13 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **Import** validates the whole file (Zod structure, references between tables, link uniqueness, rack bounds and overlaps), then replaces all lab data in a single transaction. Built-in templates are matched by `key` to this install's built-ins. Every unlocked vault is locked after an import.
 - **Seed** runs at startup only when no seed has ever been loaded and there are no racks (`SKIP_SEED=true` disables it). Each seeded row is recorded as a `seed.entity` audit entry, which is what Settings → "Delete seed data" removes. The router's cable to Switch 1 uses its `LAN 1` port.
 - **Settings** additionally exposes `seed_loaded` / `seed_present`. `GET /api/audit` returns the last 500 entries.
+
+## Frontend shell
+
+- **Shared response types** live in `packages/shared/src/types.ts` next to the Zod input schemas.
+- **API client** (`apps/web/src/lib/api.ts`) reads the `rm_csrf` cookie and sends `X-CSRF-Token` on every non-GET request. Any `401 unauthenticated` drops the app back to the login screen.
+- **State:** Zustand stores per concern: `auth`, `lab` (racks, templates, devices, links, project badges, selection, undo history), `ui` (view preferences in `localStorage`, guarded for private windows), `vault`, `toast`.
+- **Undo/redo** keeps up to 100 steps (the spec asks for at least 50) in the lab store. Each step replays through the API. Deleting a device and undoing re-creates it with new ids, so the store keeps an alias map (old id → new id) that older steps resolve through. Undo of a delete restores per-device port edits, the device's cables and anything that sat on it (if it was a shelf).
+- **Routing:** Rack is the index route. Topology, Docs, Projects, Audit and Settings are lazy-loaded.
+- **Dialogs** are custom accessible modals with a focus trap and Escape to close. `window.confirm` is never used.
+- **Theme:** dark by default via Tailwind's `class` strategy, toggled in the header and remembered per browser.
