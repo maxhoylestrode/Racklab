@@ -106,3 +106,14 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **Password generator** uses `crypto.getRandomValues` with rejection sampling, skips look-alike characters (l, I, O, 0, 1) and guarantees one character from each enabled class.
 - **Recovery phrase** is shown once in a dialog that cannot be closed until the user ticks "I have written the recovery phrase down".
 - **Settings** was built in this phase (the vault UI needs it): vault setup, master and app password changes, auto-lock timeout, rack height, default unit height, motion override, backup and restore, and delete seed data.
+
+## Topology and Docs
+
+- **Topology root** is the router with the most cables. Without a cabled router, the best-connected device is the root. Depth is the BFS hop count. Children are ordered by the parent port they hang off (Port 1, Port 2, ...), then by name, so the seed renders exactly as section 10 describes. A unit test in `apps/web/src/lib/topology.test.ts` locks this in.
+- **Edges:** BFS tree edges are solid. Extra cables that would form loops (redundant links) are dashed. Both port names sit on the curve itself, so labels on fanned-out edges stay apart.
+- **Hidden and separate devices:** shelves are not shown in the topology. Devices without cables are listed in a "Not connected" row below the tree. Each separate connected group is laid out from its own best-connected device.
+- **Primary IP on cards** falls back to the device's first IP when none is marked primary.
+- **Docs search** runs in the browser over devices, IPs, services, notes and projects (archived included), from two characters up. A homelab's data is small enough that this beats a search endpoint.
+- **IP plan** sorts IPv4 addresses numerically (IPv6 after). Its "status" filter is the owning device's status.
+- **Inventory** prints through the browser with print CSS that hides the app chrome. Shelves are left out.
+- **VLAN management** lives on the Docs page, and a VLAN can also be created inline from the IP dialog.
