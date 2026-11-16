@@ -95,3 +95,14 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **New cables** default to cat6 blue. A speed mismatch is shown as a warning toast and in the cable inspector, never as an error.
 - **Dim unrelated** fades cables that do not touch the selected device. **Show cables** hides cables but wire mode still works.
 - **Fibre** cables use the same stroke for now; the type is shown in the tooltip and inspector.
+
+## Device drawer
+
+- **Markdown** is rendered by a small in-app renderer that builds React elements (never `innerHTML`, so no XSS). It covers headings, emphasis, links (http, https and mailto only), lists, `- [ ]` checklists (clickable, saved back to the note), quotes, tables and fenced code blocks with light keyword, string, number and comment highlighting. No Markdown or highlighting library was added.
+- **Notes editor** offers Write, Preview and Split views. Search is debounced and uses the server's full-text search.
+- **Services tree** reparents by HTML5 drag-and-drop onto another service, or onto a "top level" drop zone (there is also a button for it). The server rejects cycles and cross-device parents.
+- **IP dialog** can create a VLAN inline. Warnings (duplicate IP, outside VLAN subnet) show as badges with the full message on hover, and as toasts on save.
+- **Vault UI:** any call that returns `423 vault_locked` opens the master-password prompt and retries once after unlocking. Revealed secrets hide after 15 s, with a countdown bar. Copy clears the clipboard after 30 s if it still holds the copied value; when the browser refuses clipboard reads, it is cleared without checking. TOTP codes are computed in the browser (RFC 6238, SHA-1, 6 digits, 30 s) with a countdown ring.
+- **Password generator** uses `crypto.getRandomValues` with rejection sampling, skips look-alike characters (l, I, O, 0, 1) and guarantees one character from each enabled class.
+- **Recovery phrase** is shown once in a dialog that cannot be closed until the user ticks "I have written the recovery phrase down".
+- **Settings** was built in this phase (the vault UI needs it): vault setup, master and app password changes, auto-lock timeout, rack height, default unit height, motion override, backup and restore, and delete seed data.
