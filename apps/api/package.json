@@ -13,6 +13,7 @@
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
     "@rackmap/shared": "*",
+    "@scure/bip39": "^2.4.0",
     "cookie-parser": "^1.4.7",
     "drizzle-orm": "^0.45.4",
     "express": "^4.21.2",

@@ -6,6 +6,7 @@ import {
   DEVICE_CATEGORIES, FORM_FACTORS, DEVICE_STATUSES, PORT_KINDS, CABLE_TYPES, IP_KINDS, SERVICE_KINDS, SERVICE_STATUSES,
   PROJECT_STATUSES, PROJECT_PRIORITIES, type PortLayoutEntry,
 } from '@rackmap/shared';
+import type { KdfParams } from '../crypto/vault';
 
 const bytea = customType<{ data: Buffer; driverData: Buffer | Uint8Array }>({
   dataType: () => 'bytea',
@@ -180,14 +181,8 @@ export const credentials = pgTable('credentials', {
   ...stamps(),
 }, (t) => [check('credentials_owner_ck', sql`not (${t.device_id} is not null and ${t.service_id} is not null)`)]);
 
-export interface KdfParams {
-  alg: 'argon2id13';
-  /** base64 copy of the salt, so the params object is self-describing (spec 6). */
-  salt: string;
-  opslimit: number;
-  memlimit: number;
-  parallelism: 1;
-}
+/** KDF params stored in vault_meta (salt is also kept base64 inside, per spec 6). */
+export type { KdfParams } from '../crypto/vault';
 
 export const vaultMeta = pgTable('vault_meta', {
   id: integer('id').primaryKey().default(1),

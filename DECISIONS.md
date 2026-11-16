@@ -34,3 +34,15 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **Secure cookie flag** follows `COOKIE_SECURE` (default `true` in production) so plain-HTTP local dev still works.
 - **`trust proxy`** is set to loopback and private ranges so `req.ip` is the real client behind Nginx Proxy Manager and CapRover.
 - **CSP** allows no inline scripts or styles. React sets style properties through the DOM, which CSP does not block.
+
+## Vault
+
+- **Associated data:** every XChaCha20-Poly1305 ciphertext is bound to its slot with associated data (`rackmap:v1:credential:<id>:<field>`, `rackmap:v1:dk`, ...). A ciphertext copied into another row or field fails to decrypt. This is a standard input to the same libsodium primitive, not new cryptography.
+- **Verifier** ciphertext and nonce are stored in `verifier` / `verifier_nonce`.
+- **Recovery phrase:** 24 English BIP39 words from 256 bits of entropy, via `@scure/bip39` (audited). The normalised phrase (lowercase, single spaces) is the secret for a second argon2id derivation with its own salt and params (`recovery_kdf_params`), which wraps a second copy of DK. The phrase is returned once by `POST /vault/setup` and never stored. `POST /vault/unlock` also accepts `{ recovery_phrase }`.
+- **Changing the master password** does not rotate the recovery phrase; the phrase keeps working.
+- **Master password must differ from the app password:** checked by verifying the candidate against the stored app password hash, at setup and on change.
+- **Unlock throttling:** failed unlocks back off per session (1 s doubling, capped at 64 s). Argon2id at 64 MiB already makes guessing slow.
+- **`POST /vault/touch`** lets the UI check that the vault is still unlocked (and refresh its idle timer) without revealing anything.
+- **Locked vault responses** use HTTP `423 Locked` with code `vault_locked`, so the UI knows to prompt for the master password.
+- **Key store** is per process. Restarting the server locks every vault, which is the safe default.

@@ -7,6 +7,7 @@ import { ensureBuiltins } from './db/bootstrap';
 import { createContext } from './context';
 import { createApp } from './app';
 import { allRoutes } from './routes';
+import { applyVaultSettings } from './services/vault';
 
 async function main() {
   const here = path.dirname(fileURLToPath(import.meta.url));
@@ -14,6 +15,8 @@ async function main() {
   const handle = await openDb();
   await ensureBuiltins(handle.db);
   const ctx = createContext(handle.db, config, systemClock);
+  await applyVaultSettings(ctx);
+  ctx.vaultKeys.startSweeper();
   const app = createApp(ctx, allRoutes);
   const server = app.listen(config.port, () => {
     console.log(`RackMap listening on :${config.port} (db: ${handle.kind})`);

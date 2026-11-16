@@ -28,7 +28,7 @@ describe('login', () => {
     env.clock.advance(5000);
     const good = await request(env.app).post('/api/auth/login').send({ password: APP_PASSWORD });
     expect(good.status).toBe(200);
-    expect(good.headers['set-cookie'].join(';')).toMatch(/rm_session=.*HttpOnly.*SameSite=Strict/i);
+    expect(([] as string[]).concat(good.headers['set-cookie'] ?? []).join(';')).toMatch(/rm_session=.*HttpOnly.*SameSite=Strict/i);
     await env.handle.close();
   });
 
