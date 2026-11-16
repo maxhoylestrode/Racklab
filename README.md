@@ -36,23 +36,24 @@ On first run the API loads the sample **Home Rack** lab (remove it from Settings
 
 ## Deploy with CapRover
 
-RackMap runs as one container (the API serves the built web app) plus a separate PostgreSQL 16 app.
+RackMap runs as one container (the API serves the built web app). **It needs no configuration:** with nothing set, it uses a built-in Postgres-compatible database and a generated session secret, both kept in `/data`. The only requirement is that `/data` is a persistent directory.
 
-1. **Database:** in CapRover, go to *Apps → One-Click Apps/Databases → PostgreSQL*. Use version 16, app name `rackmap-db`, and a database `rackmap` with its own user and password. Note the connection details.
-2. **App:** create an app called `rackmap` and tick *Has Persistent Data*. Under *App Configs → Persistent Directories*, map the path in the app `/data` to a label such as `rackmap-data` (nightly backups go there).
-3. **Environment variables** (*App Configs*):
+1. **App:** create an app called `rackmap` and tick *Has Persistent Data*. Under *App Configs → Persistent Directories*, map the path in the app `/data` to a label such as `rackmap-data`. That folder holds the database, the session secret and the nightly backups. If `/data` is not a volume, the logs warn that data will be lost on redeploy.
+2. **Optional, a separate PostgreSQL 16:** for a dedicated database, go to *One-Click Apps/Databases → PostgreSQL* (version 16) and set `DATABASE_URL` as shown below. Without it, the built-in database in `/data/pglite` is used.
+3. **Environment variables** (*App Configs*), all optional:
 
-   | Variable | Required | Example / default | Notes |
-   | --- | --- | --- | --- |
-   | `DATABASE_URL` | yes | `postgres://rackmap:<pw>@srv-captain--rackmap-db:5432/rackmap` | The app refuses to start in production without it. |
-   | `SESSION_SECRET` | yes | output of `openssl rand -hex 32` | At least 32 characters. Changing it signs everyone out. |
-   | `COOKIE_SECURE` | no | `true` | Keep `true` when served over HTTPS (Nginx Proxy Manager). Set `false` only for plain-HTTP testing. |
-   | `PORT` | no | `80` | The container's HTTP port (CapRover default). |
-   | `BACKUP_DIR` | no | `/data/backups` | Nightly JSON backups (03:00 server time). |
-   | `BACKUP_RETENTION_DAYS` | no | `14` | Older nightly files are deleted. |
-   | `BACKUPS_ENABLED` | no | `true` | `false` disables the nightly job. |
-   | `SKIP_SEED` | no | `false` | `true` skips loading the sample lab on first start. |
-   | `PGLITE_DIR` | no | unset | Single-container installs only: embedded Postgres in a directory instead of `DATABASE_URL`. |
+   | Variable | Default | Notes |
+   | --- | --- | --- |
+   | `DATABASE_URL` | unset, which uses the built-in database in `/data/pglite` | e.g. `postgres://rackmap:<pw>@srv-captain--rackmap-db:5432/rackmap` |
+   | `SESSION_SECRET` | generated once and stored in `/data/session-secret` | Set your own (32+ characters) if you prefer. Changing it signs everyone out. |
+   | `COOKIE_SECURE` | `auto` | `auto` marks cookies Secure when the request arrived over HTTPS, so plain `http://server:port` works too. Set `true` to force it once you only use HTTPS. |
+   | `DATA_DIR` | `/data` | Root for the database, secret and backups. |
+   | `PORT` | `80` | The container's HTTP port (CapRover default). |
+   | `BACKUP_DIR` | `/data/backups` | Nightly JSON backups (03:00 server time). |
+   | `BACKUP_RETENTION_DAYS` | `14` | Older nightly files are deleted. |
+   | `BACKUPS_ENABLED` | `true` | `false` disables the nightly job. |
+   | `SKIP_SEED` | `false` | `true` skips loading the sample lab on first start. |
+   | `PGLITE_DIR` | `/data/pglite` | Where the built-in database lives when `DATABASE_URL` is unset. |
 
 4. **Deploy:** from a clone of this repo run `caprover deploy` (it uses `captain-definition` and the `Dockerfile`), or upload a tarball in the CapRover UI. Migrations run automatically on start.
 5. **Health:** CapRover can watch `GET /healthz`, which returns `200` without authentication.

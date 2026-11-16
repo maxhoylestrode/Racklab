@@ -14,16 +14,25 @@ declare module 'express-serve-static-core' {
   }
 }
 
+/**
+ * Secure flag: forced by COOKIE_SECURE=true/false, otherwise on when the request came in over HTTPS
+ * (directly, or via a trusted proxy's X-Forwarded-Proto). Plain-HTTP access still works out of the box.
+ */
+function secureFor(ctx: AppContext, res: Response): boolean {
+  const s = ctx.config.cookieSecure;
+  return s === 'auto' ? !!res.req?.secure : s;
+}
+
 export function setSessionCookies(ctx: AppContext, res: Response, token: string, session: SessionRow) {
   const maxAge = session.absolute_expires_at.getTime() - ctx.clock.now();
-  const base = { secure: ctx.config.cookieSecure, sameSite: 'strict' as const, path: '/', maxAge };
+  const base = { secure: secureFor(ctx, res), sameSite: 'strict' as const, path: '/', maxAge };
   res.cookie(SESSION_COOKIE, token, { ...base, httpOnly: true, signed: true });
   // Double-submit CSRF token: readable by the SPA, echoed back in the X-CSRF-Token header.
   res.cookie(CSRF_COOKIE, session.csrf_token, { ...base, httpOnly: false });
 }
 
 export function clearSessionCookies(ctx: AppContext, res: Response) {
-  const base = { secure: ctx.config.cookieSecure, sameSite: 'strict' as const, path: '/' };
+  const base = { secure: secureFor(ctx, res), sameSite: 'strict' as const, path: '/' };
   res.clearCookie(SESSION_COOKIE, { ...base, httpOnly: true, signed: true });
   res.clearCookie(CSRF_COOKIE, base);
 }

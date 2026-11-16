@@ -142,3 +142,12 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **Image verification:** Docker is not installed on the build machine, so the image itself was not built here. The `prod-deps` stage (`npm ci --omit=dev --workspace apps/api`) and the runtime layout (`apps/api/dist`, `apps/api/drizzle`, `apps/web/dist`) were reproduced by hand and started with `NODE_ENV=production`. It served `/healthz` with 200, the SPA, and the strict CSP headers, and it refused to start without a database. The first real `docker build` / CapRover deploy is still to be done on the homelab.
 - **Persistent data:** CapRover maps `/data` (backups, and PGlite data if used). Postgres runs as its own one-click app.
 - **Screenshots** in `docs/screenshots` were captured from the built app with the sample lab and example IPs.
+
+## Zero-config deployment (added after the first deploy attempt)
+
+The first CapRover deploy had no environment variables and crash-looped (502), because production required `SESSION_SECRET` and a database. With the user's go-ahead, the app now starts with no configuration:
+
+- **Session secret:** if `SESSION_SECRET` is unset, a random 32-byte secret is generated once and stored in `<DATA_DIR>/session-secret` (mode 600), so restarts keep sessions valid.
+- **Database:** in production without `DATABASE_URL` or `PGLITE_DIR`, the built-in PGlite database lives in `<DATA_DIR>/pglite`. It is never in memory. On Linux, startup warns if `DATA_DIR` is not a mounted volume.
+- **`DATA_DIR`** defaults to `/data` in production and `./data` in development. Backups default to `<DATA_DIR>/backups`.
+- **Secure cookies:** `COOKIE_SECURE` now defaults to `auto`, which sets the flag when the request arrived over HTTPS (directly or through a trusted proxy's `X-Forwarded-Proto`). Plain-HTTP access on the LAN works out of the box. `true` or `false` still forces it. If a proxy in front of CapRover hides the original HTTPS scheme, set `COOKIE_SECURE=true` once HTTPS is the only way in.

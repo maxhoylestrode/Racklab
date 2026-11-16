@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import * as schema from './schema';
+import { defaultDataDir } from '../config';
 
 export type Schema = typeof schema;
 export type DB = PgDatabase<PgQueryResultHKT, Schema>;
@@ -11,6 +12,16 @@ export interface DbHandle {
   db: DB;
   close: () => Promise<void>;
   kind: 'postgres' | 'pglite';
+}
+
+/** Linux containers: a mounted volume has a different device id from the root filesystem. */
+function warnIfNotPersistent(dataDir: string) {
+  try {
+    if (process.platform === 'linux' && fs.statSync(dataDir).dev === fs.statSync('/').dev) {
+      console.warn(`WARNING: ${dataDir} is not a mounted volume. Data will be lost when the container is replaced. `
+        + `In CapRover add a Persistent Directory with path ${dataDir}.`);
+    }
+  } catch { /* directory does not exist yet: it is created on first write */ }
 }
 
 function migrationsFolder(): string {
@@ -41,14 +52,16 @@ export async function openDb(opts: { url?: string; pgliteDir?: string; memory?: 
     await migrate(db, { migrationsFolder: migrationsFolder() });
     return { db: db as unknown as DB, close: () => pool.end(), kind: 'postgres' };
   }
-  if (process.env.NODE_ENV === 'production' && !opts.memory && !(opts.pgliteDir ?? process.env.PGLITE_DIR)) {
-    // Never silently run production on a throwaway in-memory database.
-    throw new Error('DATABASE_URL must be set in production (or PGLITE_DIR for a single-container install).');
-  }
   const { PGlite } = await import('@electric-sql/pglite');
   const { drizzle } = await import('drizzle-orm/pglite');
   const { migrate } = await import('drizzle-orm/pglite/migrator');
-  const dir = opts.memory ? undefined : (opts.pgliteDir ?? process.env.PGLITE_DIR);
+  let dir = opts.memory ? undefined : (opts.pgliteDir ?? (process.env.PGLITE_DIR || undefined));
+  if (!dir && !opts.memory && process.env.NODE_ENV === 'production') {
+    // Zero-config production: never an in-memory database; use the persistent data directory.
+    dir = path.join(defaultDataDir(), 'pglite');
+    warnIfNotPersistent(defaultDataDir());
+    console.log(`No DATABASE_URL set: using the embedded database in ${dir}`);
+  }
   if (dir) fs.mkdirSync(dir, { recursive: true });
   const client = new PGlite(dir);
   const db = drizzle(client, { schema });
