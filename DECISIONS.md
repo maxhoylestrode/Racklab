@@ -74,3 +74,15 @@ Assumptions and choices made where the spec was silent, or where the build envir
 - **Routing:** Rack is the index route. Topology, Docs, Projects, Audit and Settings are lazy-loaded.
 - **Dialogs** are custom accessible modals with a focus trap and Escape to close. `window.confirm` is never used.
 - **Theme:** dark by default via Tailwind's `class` strategy, toggled in the header and remembered per browser.
+
+## Rack view
+
+- **Scale:** the device face between the rails is 10 rack units wide (a 19" faceplate is about 10.9 U wide; the rails take the rest). Zoom changes the unit height from 28 to 80 px and everything scales from it.
+- **Rail holes** use the EIA-310 pattern of three holes per U at 0.25", 0.875" and 1.5" from the top of the unit.
+- **Shelf riders** sit on the tray lip of their slot, centred and drawn to scale (half width on the built-in 2-slot shelves).
+- **Unracked tray** lays devices out two per row, scaled down to fit, and they stay wireable.
+- **Library drops** use HTML5 drag-and-drop. Moving placed devices uses pointer events with a 5 px threshold, so a click still selects. A new device is named "<template> N" and opens inline rename straight away.
+- **Keyboard:** Up/Down move a rack device one unit, Left/Right move a shelf rider between slots, F2 renames, Delete asks to confirm, Escape cancels wiring then deselects, Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y undo and redo.
+- **Device status** visuals: offline dims LEDs and adds a grey overlay; planned is drawn translucent with a dashed outline.
+- **Project badges** sit at the device's top right, with the count in an SVG `<title>` tooltip.
+- **Search** in the top bar dims devices whose name, hostname, role or tags do not match.
