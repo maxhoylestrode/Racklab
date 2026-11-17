@@ -28,13 +28,13 @@ export function LinkPicker({ onPick, exclude = [], autoFocus }: { onPick: (t: Li
         onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
         role="combobox" aria-expanded={open} aria-controls="link-picker-list" aria-label="Link to" />
       {open && results.length > 0 && (
-        <ul id="link-picker-list" role="listbox" className="card absolute z-50 mt-1 max-h-60 w-full overflow-y-auto py-1 text-sm">
+        <ul id="link-picker-list" role="listbox" className="menu absolute z-dialog mt-1 max-h-60 w-full overflow-y-auto">
           {results.map((r) => (
             <li key={r.key} role="option" aria-selected={false}>
-              <button type="button" className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
+              <button type="button" className="menu-item"
                 onMouseDown={(e) => e.preventDefault()} onClick={() => { onPick(r.target, r.label); setQ(''); setOpen(false); }}>
                 <span className="flex-1 truncate">{r.label}</span>
-                <span className="text-[11px] text-slate-500">{r.sub}</span>
+                <span className="text-xs text-ink-2">{r.sub}</span>
               </button>
             </li>
           ))}

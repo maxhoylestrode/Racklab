@@ -32,22 +32,22 @@ export function ServicesTab({ device }: { device: Device }) {
         onDragOver={(e) => { if (dragId && dragId !== n.id) { e.preventDefault(); setOver(n.id); } }}
         onDragLeave={() => setOver((o) => (o === n.id ? null : o))}
         onDrop={(e) => { e.preventDefault(); setOver(null); if (dragId && dragId !== n.id) void reparent(dragId, n.id); }}
-        className={`group flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm ${over === n.id ? 'border-sky-500 bg-sky-500/10' : 'border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70'}`}
+        className={`group flex h-9 items-center gap-2 rounded-control border px-2 text-sm transition-colors duration-fast ${over === n.id ? 'border-dashed border-accent bg-accent/10' : 'border-transparent hover:bg-surface-hover'}`}
         style={{ marginLeft: depth * 16 }}
       >
-        <Icon name="grip" size={12} className="cursor-grab text-slate-400" />
+        <Icon name="grip" size={12} className="cursor-grab text-ink-3" />
         <StatusDot status={n.status} />
-        <span className="chip">{KIND_LABEL[n.kind]}{n.vmid_or_ctid != null ? ` ${n.vmid_or_ctid}` : ''}</span>
-        <span className="min-w-0 flex-1 truncate font-medium">{n.name}</span>
-        {n.url && <a href={n.url} target="_blank" rel="noopener noreferrer" className="text-sky-500" aria-label={`Open ${n.name}`} onClick={(e) => e.stopPropagation()}><Icon name="external" size={12} /></a>}
-        <span className="hidden gap-0.5 group-hover:flex group-focus-within:flex">
+        <span className="chip w-[68px] shrink-0 justify-between font-mono">{KIND_LABEL[n.kind]}{n.vmid_or_ctid != null && <span className="text-ink">{n.vmid_or_ctid}</span>}</span>
+        <span className="min-w-0 flex-1 truncate text-ink">{n.name}</span>
+        {n.url && <a href={n.url} target="_blank" rel="noopener noreferrer" className="rounded-control p-1 text-ink-2 hover:bg-surface-hover hover:text-accent" aria-label={`Open ${n.name}`} onClick={(e) => e.stopPropagation()}><Icon name="external" size={12} /></a>}
+        <span className="hidden gap-1 group-hover:flex group-focus-within:flex">
           <button className="btn btn-ghost btn-sm" aria-label={`Add inside ${n.name}`} title="Add child" onClick={() => setEditing({ svc: null, parent: n.id })}><Icon name="plus" size={11} /></button>
           <button className="btn btn-ghost btn-sm" aria-label={`Edit ${n.name}`} onClick={() => setEditing({ svc: n, parent: n.parent_service_id })}><Icon name="edit" size={11} /></button>
           {n.parent_service_id && <button className="btn btn-ghost btn-sm" aria-label={`Move ${n.name} to top level`} title="Move to top level" onClick={() => void reparent(n.id, null)}><Icon name="undo" size={11} /></button>}
         </span>
       </div>
       {(n.port_number || n.ip_address_id) && (
-        <div className="pb-1 text-[11px] text-slate-500" style={{ marginLeft: depth * 16 + 40 }}>
+        <div className="pb-1 font-mono text-xs text-ink-2" style={{ marginLeft: depth * 16 + 40 }}>
           {ips.data?.find((i) => i.id === n.ip_address_id)?.address}{n.port_number ? `:${n.port_number}` : ''}
         </div>
       )}
@@ -57,22 +57,22 @@ export function ServicesTab({ device }: { device: Device }) {
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Services</h3>
+      <div className="mb-2 flex h-8 items-center justify-between">
+        <h3 className="text-sm font-medium">Services</h3>
         <button className="btn btn-sm" onClick={() => setEditing({ svc: null, parent: null })}><Icon name="plus" size={12} /> Add service</button>
       </div>
       {!tree.data?.length ? (
-        <p className="text-xs text-slate-500">Nothing hosted here yet. Add VMs, LXC containers, Docker apps or plain apps, for example a Proxmox host with CT 100 and VM 200.</p>
+        <p className="text-sm text-ink-2">Nothing hosted here yet. Add VMs, LXC containers, Docker apps or plain apps, for example a Proxmox host with CT 100 and VM 200.</p>
       ) : (
         <>
-          <ul className="space-y-0.5">{tree.data.map((n) => <Row key={n.id} n={n} depth={0} />)}</ul>
+          <ul className="-mx-2">{tree.data.map((n) => <Row key={n.id} n={n} depth={0} />)}</ul>
           {dragId && (
-            <div className="mt-2 rounded-md border border-dashed border-slate-400 p-2 text-center text-xs text-slate-500"
+            <div className="mt-2 rounded-control border border-dashed border-accent/50 px-3 py-2 text-xs text-ink-2"
               onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); void reparent(dragId, null); }}>
               Drop here to move to the top level
             </div>
           )}
-          <p className="mt-2 text-[11px] text-slate-500">Drag a service onto another to nest it.</p>
+          <p className="mt-2 text-xs text-ink-2">Drag a service onto another to nest it.</p>
         </>
       )}
       {editing && (
@@ -118,12 +118,12 @@ function ServiceDialog({ device, svc, parent, ips, onClose, onSaved }: {
         <label className="col-span-2"><span className="label">URL</span><input type="url" className="input" placeholder="https://" value={f.url} onChange={(e) => set('url', e.target.value)} /></label>
         <label><span className="label">Status</span><select className="input" value={f.status} onChange={(e) => set('status', e.target.value)}>{SERVICE_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></label>
         <label className="col-span-2"><span className="label">Notes</span><textarea className="input" rows={3} value={f.notes} onChange={(e) => set('notes', e.target.value)} /></label>
-        <div className="col-span-2 flex justify-between">
+        <div className="col-span-2 mt-2 flex justify-between">
           {svc ? <button type="button" className="btn btn-danger" onClick={async () => {
             if (!(await confirmDialog({ title: `Delete ${svc.name}?`, message: 'Child services, notes and credentials under it are deleted too.', danger: true, confirmLabel: 'Delete' }))) return;
             try { await api.del(`/services/${svc.id}`); onSaved(); } catch (err) { toast.error(err); }
           }}>Delete</button> : <span />}
-          <div className="flex gap-2"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary">Save</button></div>
+          <div className="flex gap-2"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary">Save service</button></div>
         </div>
       </form>
     </Modal>

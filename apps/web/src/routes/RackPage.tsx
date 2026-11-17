@@ -12,6 +12,9 @@ import { Cables, useWiring } from '../components/cables/Cables';
 import { LinkInspector } from '../components/cables/LinkInspector';
 import { confirmDialog, Empty, Modal } from '../components/ui';
 import { Icon } from '../components/Icon';
+import { IconButton, SearchInput, Tooltip, Actions } from '../components/primitives';
+
+const Divider = () => <span className="mx-1 h-5 w-px shrink-0 bg-line-strong" aria-hidden />;
 import { exportPng, exportSvg } from '../lib/exportRack';
 
 export function RackPage() {
@@ -123,56 +126,60 @@ export function RackPage() {
     if (ok) { await lab.deleteDevice(id); void lab.refreshBadges(); }
   }
 
-  if (!loaded) return <div className="p-6 text-sm text-slate-500">Loading lab…</div>;
+  if (!loaded) return <div className="p-6 text-sm text-ink-2">Loading lab…</div>;
 
   return (
-    <div className="relative flex h-full">
+    <div className="relative flex h-full flex-col gap-2 md:flex-row">
+      <h1 className="sr-only">Rack: {rack?.name ?? 'no rack'}</h1>
       <Library />
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* top bar */}
-        <div className="no-print flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white/60 px-3 py-2 dark:border-slate-800 dark:bg-[#0d121c]/60" role="toolbar" aria-label="Rack tools">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+        {/* toolbar */}
+        <div className="rack-toolbar glass no-print flex h-12 shrink-0 items-center gap-2 overflow-x-auto rounded-panel px-2" role="toolbar" aria-label="Rack tools">
           <label className="sr-only" htmlFor="rack-select">Rack</label>
-          <select id="rack-select" className="input w-auto py-1" value={rackId ?? ''} onChange={(e) => lab.setRack(e.target.value)}>
+          <select id="rack-select" className="input w-auto max-w-[200px] shrink-0" value={rackId ?? ''} onChange={(e) => lab.setRack(e.target.value)}>
             {racks.map((r) => <option key={r.id} value={r.id}>{r.name} ({r.total_units}U)</option>)}
             {!racks.length && <option value="">No racks</option>}
           </select>
-          <button className="btn btn-sm" onClick={() => setNewRack(true)} aria-label="New rack" title="New rack"><Icon name="plus" size={13} /></button>
-          <div className="flex items-center gap-1" aria-label="Zoom">
-            <button className="btn btn-ghost btn-sm" aria-label="Zoom out" onClick={() => ui.setUnitPx(ui.unitPx - 6)}><Icon name="minus" size={13} /></button>
-            <input type="range" min={UNIT_MIN} max={UNIT_MAX} value={ui.unitPx} onChange={(e) => ui.setUnitPx(Number(e.target.value))} aria-label="Unit height" className="w-24 accent-sky-500" />
-            <button className="btn btn-ghost btn-sm" aria-label="Zoom in" onClick={() => ui.setUnitPx(ui.unitPx + 6)}><Icon name="plus" size={13} /></button>
+          <IconButton icon="plus" label="New rack" variant="secondary" size="md" onClick={() => setNewRack(true)} />
+          <Divider />
+          <div className="flex shrink-0 items-center gap-1" role="group" aria-label="Zoom">
+            <IconButton icon="minus" label="Zoom out" onClick={() => ui.setUnitPx(ui.unitPx - 6)} />
+            <input type="range" min={UNIT_MIN} max={UNIT_MAX} value={ui.unitPx} onChange={(e) => ui.setUnitPx(Number(e.target.value))} aria-label="Unit height" className="tb-optional w-16" />
+            <IconButton icon="plus" label="Zoom in" onClick={() => ui.setUnitPx(ui.unitPx + 6)} />
           </div>
-          <div className="flex rounded-md border border-slate-300 p-0.5 dark:border-slate-700" role="group" aria-label="View">
-            <button className="btn btn-sm btn-on border-0" aria-pressed="true">Rack</button>
-            <button className="btn btn-ghost btn-sm border-0" aria-pressed="false" onClick={() => navigate('/topology')}>Topology</button>
+          <Divider />
+          <Tooltip content="Click a port, then another port">
+            <button className={`btn btn-sm shrink-0 ${ui.wireMode ? 'btn-on' : ''}`} aria-pressed={ui.wireMode} onClick={() => { ui.setWireMode(!ui.wireMode); wiring.cancel(); }}>
+              <Icon name="cable" /> Wire
+            </button>
+          </Tooltip>
+          <div className="segmented shrink-0" role="group" aria-label="Layers">
+            <Tooltip content="Show cables"><button className="btn" aria-pressed={ui.showCables} aria-label="Show cables" onClick={() => ui.toggle('showCables')}><Icon name="cables" /></button></Tooltip>
+            <Tooltip content="Dim unrelated devices"><button className="btn" aria-pressed={ui.dimUnrelated} aria-label="Dim unrelated" onClick={() => ui.toggle('dimUnrelated')}><Icon name="dim" /></button></Tooltip>
+            <Tooltip content="Project badges"><button className="btn" aria-pressed={ui.showBadges} aria-label="Project badges" onClick={() => ui.toggle('showBadges')}><Icon name="badge" /></button></Tooltip>
           </div>
-          <span className="mx-1 h-5 w-px bg-slate-300 dark:bg-slate-700" />
-          <button className={`btn btn-sm ${ui.wireMode ? 'btn-on' : ''}`} aria-pressed={ui.wireMode} onClick={() => { ui.setWireMode(!ui.wireMode); wiring.cancel(); }} title="Wire mode: click a port, then another port">
-            <Icon name="cable" size={14} /> Wire
-          </button>
-          <button className={`btn btn-sm ${ui.showCables ? 'btn-on' : ''}`} aria-pressed={ui.showCables} onClick={() => ui.toggle('showCables')}>Show cables</button>
-          <button className={`btn btn-sm ${ui.dimUnrelated ? 'btn-on' : ''}`} aria-pressed={ui.dimUnrelated} onClick={() => ui.toggle('dimUnrelated')}>Dim unrelated</button>
-          <button className={`btn btn-sm ${ui.showBadges ? 'btn-on' : ''}`} aria-pressed={ui.showBadges} onClick={() => ui.toggle('showBadges')}>Project badges</button>
-          <div className="flex-1" />
-          <button className="btn btn-ghost btn-sm" disabled={!lab.past.length} onClick={() => lab.undo().catch(toast.error)} aria-label="Undo" title={lab.past.at(-1) ? `Undo: ${lab.past.at(-1)!.label}` : 'Undo'}><Icon name="undo" size={14} /></button>
-          <button className="btn btn-ghost btn-sm" disabled={!lab.future.length} onClick={() => lab.redo().catch(toast.error)} aria-label="Redo" title={lab.future.at(-1) ? `Redo: ${lab.future.at(-1)!.label}` : 'Redo'}><Icon name="redo" size={14} /></button>
+          <div className="segmented hidden shrink-0 2xl:inline-flex" role="group" aria-label="View">
+            <button className="btn" aria-pressed="true">Rack</button>
+            <button className="btn" aria-pressed="false" onClick={() => navigate('/topology')}>Topology</button>
+          </div>
+          <div className="min-w-2 flex-1" />
+          <IconButton icon="undo" label="Undo" tooltip={lab.past.at(-1) ? `Undo: ${lab.past.at(-1)!.label}` : 'Undo'} disabled={!lab.past.length} onClick={() => lab.undo().catch(toast.error)} />
+          <IconButton icon="redo" label="Redo" tooltip={lab.future.at(-1) ? `Redo: ${lab.future.at(-1)!.label}` : 'Redo'} disabled={!lab.future.length} onClick={() => lab.redo().catch(toast.error)} />
           <ExportMenu svgRef={svgRef} name={rack?.name ?? 'rack'} />
-          <div className="relative">
-            <Icon name="search" size={14} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input className="input w-44 py-1 pl-7" placeholder="Search devices" value={ui.search} onChange={(e) => ui.setSearch(e.target.value)} aria-label="Search devices" />
-          </div>
+          <SearchInput wrapperClassName="shrink-0" className="w-36 transition-[width] duration-base focus:w-52" placeholder="Search devices" value={ui.search} onChange={(e) => ui.setSearch(e.target.value)} aria-label="Search devices" />
         </div>
         <div className="relative min-h-0 flex-1">
         {ui.wireMode && (
-          <div className="no-print pointer-events-none absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-full border border-sky-500/40 bg-sky-950/90 px-4 py-1 text-xs text-sky-200 shadow-lg" role="status">
-            {wiring.pending ? 'Now click the port at the other end. Escape cancels.' : 'Wire mode: click a port to start a cable.'}
+          <div className="glass glass-overlay no-print pointer-events-none absolute left-1/2 top-3 z-overlay-ui flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full py-1 pl-2 pr-3 text-xs text-ink" role="status">
+            <span className="h-2 w-2 rounded-full bg-accent" aria-hidden />
+            {wiring.pending ? 'Now click the port at the other end. Esc cancels.' : 'Wire mode: click a port to start a cable. Esc exits.'}
           </div>
         )}
         <div className="h-full overflow-auto" onClick={() => setMenu(null)}>
           {!rack ? (
-            <div className="p-8"><Empty title="No rack yet" action={<button className="btn btn-primary" onClick={() => setNewRack(true)}>Create a rack</button>}>Create a rack, then drag devices from the library on the left.</Empty></div>
+            <div className="p-8"><Empty title="No rack yet" action={<button className="btn btn-primary" onClick={() => setNewRack(true)}><Icon name="plus" />Create a rack</button>}>Create a rack, then drag devices onto it from the library.</Empty></div>
           ) : (
-            <div className="flex min-w-max justify-center p-6">
+            <div className="flex min-w-max justify-center px-6 pb-8 pt-4">
               <RackScene
                 rack={rack}
                 devices={devices}
@@ -188,8 +195,8 @@ export function RackPage() {
             </div>
           )}
           {rack && devices.length === 0 && (
-            <div className="pointer-events-none absolute left-1/2 top-10 -translate-x-1/2 rounded-lg bg-slate-900/90 px-4 py-2 text-sm text-slate-200 shadow-lg">
-              Empty rack. Drag a switch or server from the library on the left to get started.
+            <div className="glass glass-overlay pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-panel px-4 py-2 text-sm text-ink">
+              Empty rack. Drag a switch or server from the library to get started.
             </div>
           )}
         </div>
@@ -208,8 +215,8 @@ export function RackPage() {
             { label: 'Rename', run: () => setRenaming(menu.id) },
             { label: 'Duplicate', run: async () => { const d = await lab.duplicateDevice(menu.id); select({ kind: 'device', id: d.id }); } },
             { label: 'Change template…', run: () => setChangeTpl(menu.id) },
-            ...DEVICE_STATUSES.map((s) => ({ label: `Set status: ${s}`, run: () => lab.setStatus(menu.id, s as DeviceStatus) })),
-            { label: 'Delete…', danger: true, run: () => deleteWithConfirm(menu.id) },
+            ...DEVICE_STATUSES.map((s, i) => ({ label: `Set status: ${s}`, sep: i === 0, run: () => lab.setStatus(menu.id, s as DeviceStatus) })),
+            { label: 'Delete…', danger: true, sep: true, run: () => deleteWithConfirm(menu.id) },
           ]}
         />
       )}
@@ -219,7 +226,7 @@ export function RackPage() {
   );
 }
 
-function ContextMenu({ x, y, items, onClose }: { x: number; y: number; onClose: () => void; items: { label: string; run: () => unknown; danger?: boolean }[] }) {
+function ContextMenu({ x, y, items, onClose }: { x: number; y: number; onClose: () => void; items: { label: string; run: () => unknown; danger?: boolean; sep?: boolean }[] }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     ref.current?.querySelector<HTMLElement>('button')?.focus();
@@ -238,9 +245,9 @@ function ContextMenu({ x, y, items, onClose }: { x: number; y: number; onClose: 
     return () => { window.removeEventListener('mousedown', close); window.removeEventListener('keydown', key); };
   }, [onClose]);
   return (
-    <div ref={ref} role="menu" className="card fixed z-50 w-52 py-1 text-sm shadow-xl" style={{ left: Math.min(x, window.innerWidth - 220), top: Math.min(y, window.innerHeight - 300) }}>
-      {items.map((it) => (
-        <button key={it.label} role="menuitem" className={`block w-full px-3 py-1.5 text-left hover:bg-slate-100 focus:bg-slate-100 dark:hover:bg-slate-800 dark:focus:bg-slate-800 ${it.danger ? 'text-rose-500' : ''}`}
+    <div ref={ref} role="menu" className="menu fixed w-56" style={{ left: Math.min(x, window.innerWidth - 232), top: Math.min(y, window.innerHeight - 360) }}>
+      {items.map((it, i) => (
+        <button key={it.label} role="menuitem" className={`menu-item ${it.danger ? 'menu-item-danger' : ''} ${it.sep ? 'mt-1 border-t border-line' : ''} ${i === 0 ? '' : ''}`}
           onClick={async () => { onClose(); try { await it.run(); } catch (e) { toast.error(e); } }}>
           {it.label}
         </button>
@@ -259,11 +266,11 @@ function ChangeTemplate({ deviceId, onClose }: { deviceId: string; onClose: () =
       <select className="input" value={tid} onChange={(e) => setTid(e.target.value)} aria-label="Template">
         {templates.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.form_factor === 'rack' ? `${t.height_u}U` : 'loose'})</option>)}
       </select>
-      <p className="mt-2 text-xs text-slate-500">Ports with the same label keep their cables. Other ports and their cables are removed.</p>
-      <div className="mt-4 flex justify-end gap-2">
+      <p className="mt-2 text-xs text-ink-2">Ports with the same label keep their cables. Other ports and their cables are removed.</p>
+      <Actions>
         <button className="btn" onClick={onClose}>Cancel</button>
         <button className="btn btn-primary" onClick={async () => { try { await updateDevice(d.id, { template_id: tid }); onClose(); } catch (e) { toast.error(e); } }}>Change</button>
-      </div>
+      </Actions>
     </Modal>
   );
 }
@@ -283,25 +290,38 @@ function NewRackDialog({ open, onClose }: { open: boolean; onClose: () => void }
       }}>
         <label className="label" htmlFor="rack-name">Name</label>
         <input id="rack-name" className="input" value={name} onChange={(e) => setName(e.target.value)} />
-        <label className="label mt-3" htmlFor="rack-units">Height (U)</label>
+        <label className="label mt-4" htmlFor="rack-units">Height (U)</label>
         <input id="rack-units" type="number" min={1} max={60} className="input" value={units} onChange={(e) => setUnits(Number(e.target.value))} />
-        <div className="mt-4 flex justify-end gap-2"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary">Create</button></div>
+        <Actions><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary">Create rack</button></Actions>
       </form>
     </Modal>
   );
 }
 
 function ExportMenu({ svgRef, name }: { svgRef: React.MutableRefObject<SVGSVGElement | null>; name: string }) {
-  const [open, setOpen] = useState(false);
+  const [at, setAt] = useState<{ right: number; top: number } | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!at) return;
+    ref.current?.querySelector<HTMLElement>('[role=menuitem]')?.focus();
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setAt(null); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setAt(null); };
+    window.addEventListener('mousedown', close);
+    window.addEventListener('keydown', key);
+    return () => { window.removeEventListener('mousedown', close); window.removeEventListener('keydown', key); };
+  }, [at]);
   return (
-    <div className="relative">
-      <button className="btn btn-ghost btn-sm" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} title="Export the rack view"><Icon name="image" size={14} /></button>
-      {open && (
-        <div role="menu" className="card absolute right-0 top-8 z-40 w-40 py-1 text-sm">
-          <button role="menuitem" className="block w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => { setOpen(false); if (svgRef.current) void exportPng(svgRef.current, name).catch(toast.error); }}>Export PNG</button>
-          <button role="menuitem" className="block w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => { setOpen(false); if (svgRef.current) exportSvg(svgRef.current, name); }}>Export SVG</button>
+    <div ref={ref}>
+      <IconButton icon="image" label="Export the rack view" aria-haspopup="menu" aria-expanded={!!at}
+        onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setAt(at ? null : { right: window.innerWidth - r.right, top: r.bottom + 6 }); }} />
+      {/* Fixed position: the toolbar scrolls horizontally on small screens and would clip an absolute menu. */}
+      {at && (
+        <div role="menu" className="menu fixed w-44" style={at}>
+          <button role="menuitem" className="menu-item" onClick={() => { setAt(null); if (svgRef.current) void exportPng(svgRef.current, name).catch(toast.error); }}><Icon name="download" className="text-ink-2" />Export PNG</button>
+          <button role="menuitem" className="menu-item" onClick={() => { setAt(null); if (svgRef.current) exportSvg(svgRef.current, name); }}><Icon name="download" className="text-ink-2" />Export SVG</button>
         </div>
       )}
     </div>
   );
 }
+

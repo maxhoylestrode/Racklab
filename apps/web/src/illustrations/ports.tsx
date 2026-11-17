@@ -17,7 +17,8 @@ function delayFor(id: string): string {
 export const Jack = memo(function Jack({ port, x, y, s, linked, offline, led = true }: {
   port: Port; x: number; y: number; s: number; linked: boolean; offline: boolean; led?: boolean;
 }) {
-  const ledColor = linked ? (port.poe ? '#f59e0b' : '#22c55e') : '#262a31';
+  // Link-state LEDs use the accent; PoE ports glow amber. Unlinked LEDs are dark.
+  const ledColor = linked ? (port.poe ? '#f0b64c' : '#45dde0') : '#23262c';
   const ledR = Math.max(1.2, s * 0.13);
   const showLed = led && ['rj45', 'sfp', 'sfp_plus', 'idrac'].includes(port.kind);
   const blink = linked && !offline;
@@ -28,7 +29,7 @@ export const Jack = memo(function Jack({ port, x, y, s, linked, offline, led = t
       const w = s * 1.05, h = s * 0.9;
       body = (
         <g>
-          <rect x={x - w / 2} y={y - h / 2} width={w} height={h} rx={s * 0.08} fill="#0a0b0d" stroke={port.kind === 'idrac' ? '#3b82f6' : '#4b5059'} strokeWidth={Math.max(0.6, s * 0.06)} />
+          <rect x={x - w / 2} y={y - h / 2} width={w} height={h} rx={s * 0.08} fill="#0a0b0d" stroke={port.kind === 'idrac' ? '#6c8bb0' : '#4b5059'} strokeWidth={Math.max(0.6, s * 0.06)} />
           <rect x={x - w * 0.22} y={y + h * 0.18} width={w * 0.44} height={h * 0.32} fill="#2d3139" />
           {[...Array(4)].map((_, i) => <rect key={i} x={x - w * 0.34 + i * w * 0.2} y={y - h * 0.38} width={w * 0.07} height={h * 0.2} fill="#b08d3a" />)}
         </g>
@@ -51,7 +52,7 @@ export const Jack = memo(function Jack({ port, x, y, s, linked, offline, led = t
       body = (
         <g>
           <rect x={x - w / 2} y={y - h / 2} width={w} height={h} rx={s * 0.04} fill="#0a0b0d" stroke="#6b7280" strokeWidth={Math.max(0.5, s * 0.05)} />
-          <rect x={x - w * 0.36} y={y - h * 0.3} width={w * 0.72} height={h * 0.3} fill="#2563eb" />
+          <rect x={x - w * 0.36} y={y - h * 0.3} width={w * 0.72} height={h * 0.3} fill="#3d5f94" />
         </g>
       );
       break;
@@ -76,7 +77,7 @@ export const Jack = memo(function Jack({ port, x, y, s, linked, offline, led = t
       const w = s * 1.3, h = s * 0.6;
       body = (
         <g>
-          <path d={`M${x - w / 2} ${y - h / 2} h${w} l${-w * 0.1} ${h} h${-w * 0.8} z`} fill="#1e3a8a" stroke="#64748b" strokeWidth={Math.max(0.5, s * 0.05)} />
+          <path d={`M${x - w / 2} ${y - h / 2} h${w} l${-w * 0.1} ${h} h${-w * 0.8} z`} fill="#2a3b5e" stroke="#64748b" strokeWidth={Math.max(0.5, s * 0.05)} />
           {[...Array(5)].map((_, i) => <circle key={i} cx={x - w * 0.3 + i * w * 0.15} cy={y - h * 0.1} r={s * 0.04} fill="#cbd5e1" />)}
         </g>
       );
@@ -88,7 +89,7 @@ export const Jack = memo(function Jack({ port, x, y, s, linked, offline, led = t
       {showLed && (
         <g className={blink ? 'led-activity' : undefined} style={blink ? { animationDelay: delayFor(port.id) } : undefined}>
           {/* A soft halo instead of an SVG blur filter: filters on hundreds of animated LEDs are very expensive to paint. */}
-          {linked && <circle cx={x + s * 0.42} cy={y - s * 0.62} r={ledR * 2.2} fill={ledColor} fillOpacity={0.22} />}
+          {linked && <circle cx={x + s * 0.42} cy={y - s * 0.62} r={ledR + Math.min(3, Math.max(2, s * 0.22))} fill={ledColor} fillOpacity={0.2} />}
           <circle cx={x + s * 0.42} cy={y - s * 0.62} r={ledR} fill={ledColor} />
         </g>
       )}

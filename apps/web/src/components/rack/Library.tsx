@@ -7,6 +7,7 @@ import { api } from '../../lib/api';
 import { toast } from '../../store/toast';
 import { Modal, confirmDialog } from '../ui';
 import { Icon } from '../Icon';
+import { SearchInput } from '../primitives';
 
 const GROUPS: { label: string; cats: DeviceCategory[] }[] = [
   { label: 'Network', cats: ['router', 'switch', 'ap', 'patch_panel'] },
@@ -22,22 +23,22 @@ export function Library() {
   const filtered = useMemo(() => templates.filter((t) => t.name.toLowerCase().includes(q.toLowerCase())), [templates, q]);
 
   return (
-    <aside className="no-print flex w-60 shrink-0 flex-col border-r border-slate-200 bg-white/60 dark:border-slate-800 dark:bg-[#0d121c]/80" aria-label="Device library">
-      <div className="border-b border-slate-200 p-3 dark:border-slate-800">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Device library</h2>
-        <input className="input" placeholder="Filter templates" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter templates" />
+    <aside className="glass no-print flex shrink-0 flex-col overflow-hidden rounded-panel max-md:order-last max-md:h-44 md:w-64" aria-label="Device library">
+      <div className="flex items-center gap-2 border-b border-line p-3 max-md:py-2">
+        <h2 className="eyebrow mr-auto shrink-0">Library</h2>
+        <SearchInput wrapperClassName="min-w-0 flex-1 md:max-w-[148px]" className="h-7 text-xs" placeholder="Filter" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter templates" />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        <p className="mb-2 px-1 text-[11px] leading-snug text-slate-500">Drag onto the rack. Loose gear (Pi, tower, laptop, router) goes on a shelf or in the unracked tray.</p>
+      <div className="min-h-0 flex-1 overflow-auto p-2 max-md:flex max-md:gap-4">
+        <p className="mb-2 px-2 text-xs text-ink-2 max-md:hidden">Drag onto the rack. Loose gear goes on a shelf or in the unracked tray.</p>
         {GROUPS.map((grp) => {
           const items = filtered.filter((t) => grp.cats.includes(t.category));
           if (!items.length) return null;
           return (
-            <section key={grp.label} className="mb-3">
-              <h3 className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{grp.label}</h3>
-              <ul className="space-y-1.5">
+            <section key={grp.label} className="mb-3 max-md:mb-0 max-md:shrink-0">
+              <h3 className="eyebrow px-2 pb-1">{grp.label}</h3>
+              <ul className="max-md:flex max-md:gap-1">
                 {items.map((t) => (
-                  <li key={t.id}>
+                  <li key={t.id} className="max-md:w-36 max-md:shrink-0">
                     <div
                       draggable
                       onDragStart={(e) => {
@@ -46,14 +47,16 @@ export function Library() {
                         e.dataTransfer.effectAllowed = 'copy';
                       }}
                       onDragEnd={() => { libraryDrag.templateId = null; }}
-                      className="group cursor-grab rounded-lg border border-slate-200 bg-white p-2 transition hover:border-sky-400 dark:border-slate-800 dark:bg-slate-900/80 dark:hover:border-sky-600"
+                      className="group cursor-grab rounded-control p-2 transition-colors duration-fast hover:bg-surface-hover active:cursor-grabbing"
                       title={`${t.name}: ${t.form_factor === 'rack' ? `${t.height_u}U rack-mount` : 'loose, shelf or tray'}`}
                     >
-                      <div className="flex justify-center rounded bg-[#0b0f17] p-1.5"><DeviceThumb device={previewDevice(t)} tpl={t} width={t.form_factor === 'loose' ? 90 : 180} /></div>
-                      <div className="mt-1.5 flex items-center gap-1">
-                        <span className="min-w-0 flex-1 truncate text-xs font-medium">{t.name}</span>
-                        <span className="chip">{t.form_factor === 'rack' ? `${t.height_u}U` : 'loose'}</span>
-                        <button className="rounded p-0.5 text-slate-400 opacity-0 hover:text-sky-400 focus:opacity-100 group-hover:opacity-100"
+                      <div className="flex h-12 items-center justify-center rounded-control bg-surface-inset px-2 shadow-[inset_0_1px_2px_rgb(0_0_0/0.4)]">
+                        <DeviceThumb device={previewDevice(t)} tpl={t} width={t.form_factor === 'loose' ? 72 : 196} />
+                      </div>
+                      <div className="mt-2 flex h-5 items-center gap-2">
+                        <span className="min-w-0 flex-1 truncate text-sm text-ink">{t.name}</span>
+                        <span className="shrink-0 font-mono text-xs text-ink-2">{t.form_factor === 'rack' ? `${t.height_u}U` : 'loose'}</span>
+                        <button className="-my-1 rounded-control p-1 text-ink-2 opacity-0 transition-opacity duration-fast hover:bg-surface-hover hover:text-ink focus:opacity-100 group-hover:opacity-100"
                           aria-label={t.is_builtin ? `Clone ${t.name}` : `Edit ${t.name}`} title={t.is_builtin ? 'Clone to edit' : 'Edit'}
                           onClick={async () => {
                             if (!t.is_builtin) return setEditing(t);
@@ -63,7 +66,7 @@ export function Library() {
                               setEditing(c);
                             } catch (e) { toast.error(e); }
                           }}>
-                          <Icon name={t.is_builtin ? 'copy' : 'edit'} size={13} />
+                          <Icon name={t.is_builtin ? 'copy' : 'edit'} />
                         </button>
                       </div>
                     </div>
@@ -73,15 +76,15 @@ export function Library() {
             </section>
           );
         })}
+        {!filtered.length && <p className="px-2 text-sm text-ink-2">No templates match “{q}”.</p>}
       </div>
-      <div className="border-t border-slate-200 p-2 dark:border-slate-800">
-        <button className="btn w-full" onClick={() => setEditing('new')}><Icon name="plus" size={14} /> Custom template</button>
+      <div className="border-t border-line p-2 max-md:hidden">
+        <button className="btn btn-ghost w-full justify-start" onClick={() => setEditing('new')}><Icon name="plus" /> Custom template</button>
       </div>
       {editing && <TemplateEditor template={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
     </aside>
   );
 }
-
 interface PortRow { label: string; kind: PortKind; speed_mbps: number | null; poe: boolean }
 
 /** Evenly distributes ports across the face (two rows when there are many). */
@@ -147,14 +150,14 @@ function TemplateEditor({ template, onClose }: { template: DeviceTemplate | null
         )}
       </div>
       <div className="mt-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Ports ({ports.length})</h3>
+        <h3 className="text-sm font-medium">Ports ({ports.length})</h3>
         <div className="flex gap-2">
           <button className="btn btn-sm" onClick={() => setPorts((p) => [...p, ...Array.from({ length: 4 }, (_, i) => ({ label: `Port ${p.length + i + 1}`, kind: 'rj45' as PortKind, speed_mbps: 1000, poe: false }))])}>+4 RJ45</button>
           <button className="btn btn-sm" onClick={() => setPorts((p) => [...p, { label: `Port ${p.length + 1}`, kind: 'rj45', speed_mbps: 1000, poe: false }])}><Icon name="plus" size={12} /> Port</button>
         </div>
       </div>
-      <div className="mt-2 max-h-64 overflow-y-auto rounded border border-slate-200 dark:border-slate-800">
-        <table className="table-base">
+      <div className="surface-solid mt-2 max-h-64 overflow-y-auto rounded-panel">
+        <table className="table-base table-compact">
           <thead><tr><th>Label</th><th>Kind</th><th>Speed (Mbps)</th><th>PoE</th><th /></tr></thead>
           <tbody>
             {ports.map((p, i) => (
@@ -166,12 +169,12 @@ function TemplateEditor({ template, onClose }: { template: DeviceTemplate | null
                 <td><button className="btn btn-ghost btn-sm" aria-label={`Remove port ${i + 1}`} onClick={() => setPorts((ps) => ps.filter((_, j) => j !== i))}><Icon name="close" size={12} /></button></td>
               </tr>
             ))}
-            {!ports.length && <tr><td colSpan={5} className="py-4 text-center text-xs text-slate-500">No ports yet.</td></tr>}
+            {!ports.length && <tr><td colSpan={5} className="py-4 text-sm text-ink-2">No ports yet. Add RJ45 ports in fours, or one at a time.</td></tr>}
           </tbody>
         </table>
       </div>
       {template && <label className="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" checked={keepPositions} onChange={(e) => setKeepPositions(e.target.checked)} /> Keep existing port positions (when the port count is unchanged)</label>}
-      <div className="mt-5 flex justify-between">
+      <div className="mt-6 flex justify-between">
         {template ? (
           <button className="btn btn-danger" onClick={async () => {
             if (!(await confirmDialog({ title: 'Delete template?', message: `Delete ${template.name}? Templates in use cannot be deleted.`, danger: true, confirmLabel: 'Delete' }))) return;

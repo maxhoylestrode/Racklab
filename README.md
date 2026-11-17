@@ -17,11 +17,11 @@ A single-user, self-hosted documentation app for a homelab. The main screen is a
 - **Topology:** a layered tree from the router outwards.
 - **Docs:** global search, IP plan, printable inventory, global notes and VLANs.
 - **Projects:** a kanban board and list view, linked to devices and services or standalone, with checklists.
-- **Operations:** JSON export and restore, nightly backups with 14-day retention, an audit log, and light and dark themes.
+- **Operations:** JSON export and restore, nightly backups with 14-day retention, an audit log, and a dark glass theme (with a light variant).
 
 ## Stack
 
-React 18, TypeScript, Vite, Tailwind, Zustand and React Router in `apps/web`. Node 20, Express and Drizzle ORM on PostgreSQL 16 in `apps/api`. Shared Zod schemas in `packages/shared`. libsodium for all cryptography. Design decisions and assumptions are in [DECISIONS.md](DECISIONS.md).
+React 18, TypeScript, Vite, Tailwind (driven by design tokens in `apps/web/src/styles/tokens.css`), Zustand, React Router, Lucide icons and Geist fonts in `apps/web`. Node 20, Express and Drizzle ORM on PostgreSQL 16 in `apps/api`. Shared Zod schemas in `packages/shared`. libsodium for all cryptography. Design decisions and assumptions are in [DECISIONS.md](DECISIONS.md).
 
 ## Develop
 

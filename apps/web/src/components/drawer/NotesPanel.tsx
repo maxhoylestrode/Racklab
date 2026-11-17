@@ -6,6 +6,7 @@ import { toast } from '../../store/toast';
 import { Markdown, toggleTaskLine } from '../../lib/markdown';
 import { confirmDialog } from '../ui';
 import { Icon } from '../Icon';
+import { SearchInput } from '../primitives';
 
 type Scope = { device_id: string } | { service_id: string } | { global: true };
 
@@ -32,24 +33,21 @@ export function NotesPanel({ scope }: { scope: Scope }) {
   return (
     <div>
       <div className="mb-3 flex gap-2">
-        <div className="relative flex-1">
-          <Icon name="search" size={13} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input pl-7" placeholder="Search notes" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search notes" />
-        </div>
-        <button className="btn" onClick={() => setEditing('new')}><Icon name="plus" size={13} /> Note</button>
+        <SearchInput wrapperClassName="flex-1" placeholder="Search notes" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search notes" />
+        <button className="btn" onClick={() => setEditing('new')}><Icon name="plus" /> Note</button>
       </div>
-      {!notes.data?.length && <p className="text-xs text-slate-500">{debounced ? 'No notes match.' : 'No notes yet. Markdown, code blocks and - [ ] checklists all work.'}</p>}
+      {!notes.data?.length && <p className="text-sm text-ink-2">{debounced ? 'No notes match.' : 'No notes yet. Markdown, code blocks and - [ ] checklists all work.'}</p>}
       <ul className="space-y-2">
         {notes.data?.map((n) => {
           const open = expanded === n.id || (notes.data!.length === 1);
           return (
-            <li key={n.id} className="rounded-lg border border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-1 px-3 py-2">
+            <li key={n.id} className="surface-solid overflow-hidden rounded-panel">
+              <div className="flex h-11 items-center gap-1 pl-3 pr-2">
                 <button className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-expanded={open} onClick={() => setExpanded(open ? null : n.id)}>
-                  <Icon name={open ? 'chevronDown' : 'chevronRight'} size={13} className="text-slate-400" />
-                  <span className="truncate text-sm font-medium">{n.title}</span>
+                  <Icon name={open ? 'chevronDown' : 'chevronRight'} size={13} className="text-ink-3" />
+                  <span className="truncate text-sm font-medium text-ink">{n.title}</span>
                 </button>
-                <button className={`btn btn-ghost btn-sm ${n.pinned ? 'text-amber-500' : 'text-slate-400'}`} aria-pressed={n.pinned} aria-label={n.pinned ? 'Unpin' : 'Pin'} onClick={() => void patch(n, { pinned: !n.pinned })}><Icon name="pin" size={12} /></button>
+                <button className={`btn btn-ghost btn-sm ${n.pinned ? 'text-accent' : 'text-ink-3'}`} aria-pressed={n.pinned} aria-label={n.pinned ? 'Unpin' : 'Pin'} onClick={() => void patch(n, { pinned: !n.pinned })}><Icon name="pin" size={12} /></button>
                 <button className="btn btn-ghost btn-sm" aria-label={`Edit ${n.title}`} onClick={() => setEditing(n)}><Icon name="edit" size={12} /></button>
                 <button className="btn btn-ghost btn-sm" aria-label={`Delete ${n.title}`} onClick={async () => {
                   if (!(await confirmDialog({ title: 'Delete note?', message: `Delete "${n.title}"?`, danger: true, confirmLabel: 'Delete' }))) return;
@@ -57,10 +55,10 @@ export function NotesPanel({ scope }: { scope: Scope }) {
                 }}><Icon name="trash" size={12} /></button>
               </div>
               {open && (
-                <div className="border-t border-slate-200 px-3 py-2 dark:border-slate-800">
+                <div className="border-t border-line px-4 py-3">
                   {n.body_markdown.trim() ? (
                     <Markdown source={n.body_markdown} onToggleTask={(line, checked) => void patch(n, { body_markdown: toggleTaskLine(n.body_markdown, line, checked) })} />
-                  ) : <p className="text-xs text-slate-500">Empty note.</p>}
+                  ) : <p className="text-xs text-ink-2">Empty note.</p>}
                 </div>
               )}
             </li>
@@ -88,25 +86,27 @@ function NoteEditor({ note, scope, onDone }: { note: Note | null; scope: Scope; 
   };
   return (
     <div className="space-y-2">
-      <input className="input text-base font-medium" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Note title" autoFocus />
-      <div className="flex items-center gap-1" role="group" aria-label="Editor view">
+      <input className="input text-base" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Note title" autoFocus />
+      <div className="flex items-center gap-2">
+        <div className="segmented" role="group" aria-label="Editor view">
         {(['write', 'preview', 'split'] as const).map((v) => (
-          <button key={v} className={`btn btn-sm ${view === v ? 'btn-on' : 'btn-ghost'}`} aria-pressed={view === v} onClick={() => setView(v)}>{v[0].toUpperCase() + v.slice(1)}</button>
+          <button key={v} className="btn" aria-pressed={view === v} onClick={() => setView(v)}>{v[0].toUpperCase() + v.slice(1)}</button>
         ))}
-        <label className="ml-auto flex items-center gap-1.5 text-xs"><input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} /> Pinned</label>
+        </div>
+        <label className="ml-auto flex items-center gap-2 text-sm text-ink-2"><input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} /> Pinned</label>
       </div>
       <div className={view === 'split' ? 'grid grid-cols-2 gap-2' : ''}>
         {view !== 'preview' && (
-          <textarea className="input min-h-[260px] font-mono text-xs leading-relaxed" value={body} onChange={(e) => setBody(e.target.value)} aria-label="Note body (Markdown)"
+          <textarea className="input min-h-[260px] font-mono text-xs" value={body} onChange={(e) => setBody(e.target.value)} aria-label="Note body (Markdown)"
             placeholder={'## Heading\n\n- [ ] a checklist item\n\n```bash\nssh root@pve\n```'} />
         )}
         {view !== 'write' && (
-          <div className="min-h-[260px] overflow-auto rounded-md border border-slate-200 p-3 dark:border-slate-800">
-            {body.trim() ? <Markdown source={body} onToggleTask={(l, c) => setBody(toggleTaskLine(body, l, c))} /> : <p className="text-xs text-slate-500">Nothing to preview.</p>}
+          <div className="surface-solid min-h-[260px] overflow-auto rounded-panel p-4">
+            {body.trim() ? <Markdown source={body} onToggleTask={(l, c) => setBody(toggleTaskLine(body, l, c))} /> : <p className="text-xs text-ink-2">Nothing to preview.</p>}
           </div>
         )}
       </div>
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-2 pt-2">
         <button className="btn" onClick={onDone}>Cancel</button>
         <button className="btn btn-primary" disabled={busy || !title.trim()} onClick={save}>{busy ? 'Saving…' : 'Save note'}</button>
       </div>

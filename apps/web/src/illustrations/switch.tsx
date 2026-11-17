@@ -29,7 +29,7 @@ export function SwitchArt({ w, h, device, tpl }: ArtProps) {
       <g>
         {[0, 1, 2].map((i) => (
           <g key={i}>
-            <circle cx={w * 0.31 + i * h * 0.3} cy={h * 0.5} r={Math.max(1.2, h * 0.06)} fill={device.status === 'offline' ? '#262a31' : i === 0 ? '#22c55e' : '#334155'} />
+            <circle cx={w * 0.31 + i * h * 0.3} cy={h * 0.5} r={Math.max(1.2, h * 0.06)} fill={device.status === 'offline' ? '#262a31' : i === 0 ? '#4ad08c' : '#334155'} />
           </g>
         ))}
       </g>

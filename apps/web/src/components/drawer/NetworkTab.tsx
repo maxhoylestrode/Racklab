@@ -26,11 +26,11 @@ export function NetworkTab({ device }: { device: Device }) {
   }, [devices, links]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <section aria-labelledby="ports-h">
-        <h3 id="ports-h" className="mb-2 text-sm font-semibold">Ports</h3>
-        {!device.ports.length ? <p className="text-xs text-slate-500">This device has no ports.</p> : (
-          <table className="table-base">
+        <h3 id="ports-h" className="mb-2 flex h-8 items-center text-sm font-medium">Ports</h3>
+        {!device.ports.length ? <p className="text-sm text-ink-2">This device has no ports.</p> : (
+          <div className="surface-solid overflow-hidden rounded-panel"><table className="table-base table-compact">
             <thead><tr><th>Port</th><th>Kind</th><th>Link</th><th>Connects to</th></tr></thead>
             <tbody>
               {device.ports.map((p) => {
@@ -39,52 +39,52 @@ export function NetworkTab({ device }: { device: Device }) {
                 return (
                   <tr key={p.id}>
                     <td className="font-mono text-xs">{p.label}</td>
-                    <td className="text-xs text-slate-500">{p.kind}{p.speed_mbps ? ` ${p.speed_mbps >= 1000 ? `${p.speed_mbps / 1000}G` : `${p.speed_mbps}M`}` : ''}{p.poe ? ' PoE' : ''}</td>
-                    <td>{peer ? <span className="chip border-emerald-500/40 text-emerald-600 dark:text-emerald-400">up</span> : <span className="chip">free</span>}</td>
+                    <td className="text-xs text-ink-2">{p.kind}{p.speed_mbps ? ` ${p.speed_mbps >= 1000 ? `${p.speed_mbps / 1000}G` : `${p.speed_mbps}M`}` : ''}{p.poe ? ' PoE' : ''}</td>
+                    <td>{peer ? <span className="chip chip-ok">up</span> : <span className="chip">free</span>}</td>
                     <td className="text-xs">
                       {peer ? (
-                        <button className="text-sky-600 underline-offset-2 hover:underline dark:text-sky-400" onClick={() => select({ kind: 'device', id: peer.d.id })}>
-                          {peer.d.name} · {peer.label}
+                        <button className="link text-left" onClick={() => select({ kind: 'device', id: peer.d.id })}>
+                          {peer.d.name} <span className="font-mono text-ink-2">{peer.label}</span>
                         </button>
                       ) : '—'}
-                      {mismatch && <span className="ml-1 text-amber-500" title="Speed mismatch"><Icon name="warning" size={11} className="inline" /></span>}
+                      {mismatch && <span className="ml-1 text-warn" title="Speed mismatch"><Icon name="warning" className="inline" /></span>}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
       </section>
 
       <section aria-labelledby="ips-h">
         <div className="mb-2 flex items-center justify-between">
-          <h3 id="ips-h" className="text-sm font-semibold">IP addresses</h3>
-          <button className="btn btn-sm" onClick={() => setEditing('new')}><Icon name="plus" size={12} /> Add IP</button>
+          <h3 id="ips-h" className="text-sm font-medium">IP addresses</h3>
+          <button className="btn btn-sm" onClick={() => setEditing('new')}><Icon name="plus" /> Add IP</button>
         </div>
-        {!ips.data?.length ? <p className="text-xs text-slate-500">No IP addresses yet. Add the real values for this device.</p> : (
-          <table className="table-base">
-            <thead><tr><th>Address</th><th>Kind</th><th>VLAN</th><th /></tr></thead>
+        {!ips.data?.length ? <p className="text-sm text-ink-2">No IP addresses yet. Add the real values for this device.</p> : (
+          <div className="surface-solid overflow-hidden rounded-panel"><table className="table-base table-compact">
+            <thead><tr><th>Address</th><th>Kind</th><th>VLAN</th><th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>
               {ips.data.map((ip) => (
                 <tr key={ip.id}>
                   <td>
-                    <div className="flex items-center gap-1.5 font-mono text-xs">
-                      {ip.is_primary && <span title="Primary IP" className="text-amber-500">★</span>}
+                    <div className="flex items-center gap-2 font-mono text-xs">
+                      {ip.is_primary && <span title="Primary IP" className="text-ink-2"><Icon name="star" title="Primary IP" /></span>}
                       {ip.address}/{ip.prefix_length}
                       {ip.warnings.map((w) => (
-                        <span key={w.code} className="chip border-amber-500/50 text-amber-600 dark:text-amber-300" title={w.message}>
-                          <Icon name="warning" size={10} /> {w.code === 'duplicate_ip' ? 'duplicate' : 'outside VLAN'}
+                        <span key={w.code} className="chip chip-warn" title={w.message}>
+                          <Icon name="warning" /> {w.code === 'duplicate_ip' ? 'duplicate' : 'outside VLAN'}
                         </span>
                       ))}
                     </div>
-                    {ip.dns_name && <div className="text-[11px] text-slate-500">{ip.dns_name}</div>}
+                    {ip.dns_name && <div className="text-xs text-ink-2">{ip.dns_name}</div>}
                   </td>
                   <td className="text-xs">{ip.kind}</td>
                   <td className="text-xs">{ip.vlan_number ?? '—'}</td>
                   <td className="whitespace-nowrap text-right">
-                    <button className="btn btn-ghost btn-sm" aria-label={`Edit ${ip.address}`} onClick={() => setEditing(ip)}><Icon name="edit" size={12} /></button>
-                    <button className="btn btn-ghost btn-sm" aria-label={`Delete ${ip.address}`} onClick={async () => {
+                    <button className="btn btn-ghost btn-sm btn-icon" aria-label={`Edit ${ip.address}`} onClick={() => setEditing(ip)}><Icon name="edit" /></button>
+                    <button className="btn btn-ghost btn-sm btn-icon" aria-label={`Delete ${ip.address}`} onClick={async () => {
                       if (!(await confirmDialog({ title: 'Delete IP?', message: `Delete ${ip.address}?`, danger: true, confirmLabel: 'Delete' }))) return;
                       try { await api.del(`/ip-addresses/${ip.id}`); void ips.reload(); } catch (e) { toast.error(e); }
                     }}><Icon name="trash" size={12} /></button>
@@ -92,7 +92,7 @@ export function NetworkTab({ device }: { device: Device }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </section>
       {editing && (
@@ -133,7 +133,7 @@ function IpDialog({ device, ip, vlans, onClose, onSaved, onVlanCreated }: {
               <option value="">None</option>
               {vlans.map((v) => <option key={v.id} value={v.id}>{v.vlan_number} · {v.name}{v.subnet ? ` (${v.subnet})` : ''}</option>)}
             </select>
-            <button type="button" className="btn btn-sm" onClick={() => setNewVlan(true)} aria-label="New VLAN"><Icon name="plus" size={12} /></button>
+            <button type="button" className="btn btn-icon" onClick={() => setNewVlan(true)} aria-label="New VLAN"><Icon name="plus" /></button>
           </div>
         </label>
         <label className="col-span-3"><span className="label">Port</span>
@@ -145,7 +145,7 @@ function IpDialog({ device, ip, vlans, onClose, onSaved, onVlanCreated }: {
         <label className="col-span-3"><span className="label">DNS name</span><input className="input" value={f.dns_name} onChange={(e) => set('dns_name', e.target.value)} /></label>
         <label className="col-span-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={f.is_primary} onChange={(e) => set('is_primary', e.target.checked)} /> Primary IP for this device</label>
         <label className="col-span-3"><span className="label">Notes</span><input className="input" value={f.notes} onChange={(e) => set('notes', e.target.value)} /></label>
-        <div className="col-span-3 flex justify-end gap-2"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary">Save</button></div>
+        <div className="col-span-3 mt-2 flex justify-end gap-2"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary">Save IP</button></div>
       </form>
       {newVlan && <VlanDialog onClose={() => setNewVlan(false)} onSaved={(v) => { setNewVlan(false); onVlanCreated(); set('vlan_id', v.id); }} />}
     </Modal>
@@ -169,7 +169,7 @@ export function VlanDialog({ vlan, onClose, onSaved }: { vlan?: Vlan; onClose: (
         <label><span className="label">Number</span><input type="number" min={1} max={4094} className="input" value={n} onChange={(e) => setN(Number(e.target.value))} /></label>
         <label className="col-span-2"><span className="label">Name</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} required autoFocus /></label>
         <label className="col-span-3"><span className="label">Subnet</span><input className="input font-mono" placeholder="192.168.10.0/24" value={subnet} onChange={(e) => setSubnet(e.target.value.trim())} /></label>
-        <div className="col-span-3 flex justify-end gap-2"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary">Save VLAN</button></div>
+        <div className="col-span-3 mt-2 flex justify-end gap-2"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary">Save VLAN</button></div>
       </form>
     </Modal>
   );

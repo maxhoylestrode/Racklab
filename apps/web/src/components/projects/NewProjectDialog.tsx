@@ -58,7 +58,7 @@ export function NewProjectDialog({ presetLink, onClose, onCreated }: { presetLin
                 </span>
               ))}
             </div>
-          ) : <p className="mt-1 text-[11px] text-slate-500">Leave blank for a standalone project. You can link it later.</p>}
+          ) : <p className="mt-1 text-xs text-ink-2">Leave blank for a standalone project. You can link it later.</p>}
         </div>
         <div className="flex justify-end gap-2"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary" disabled={busy || !title.trim()}>Create project</button></div>
       </form>

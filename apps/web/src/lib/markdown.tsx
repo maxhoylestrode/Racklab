@@ -95,7 +95,7 @@ function blocks(src: string, opts: Opts): ReactNode[] {
       i++;
       continue;
     }
-    if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) { out.push(<hr key={key++} className="my-3 border-slate-300 dark:border-slate-700" />); i++; continue; }
+    if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) { out.push(<hr key={key++} className="my-3 border-line-strong" />); i++; continue; }
     if (/^>\s?/.test(line)) {
       const body: string[] = [];
       while (i < lines.length && /^>\s?/.test(lines[i])) body.push(lines[i++].replace(/^>\s?/, ''));
@@ -132,7 +132,7 @@ function blocks(src: string, opts: Opts): ReactNode[] {
             <label className="inline-flex items-start gap-2">
               <input type="checkbox" className="mt-1" checked={task[1] !== ' '} disabled={!opts.onToggleTask}
                 onChange={(e) => opts.onToggleTask?.(lineNo, e.target.checked)} />
-              <span className={task[1] !== ' ' ? 'text-slate-500 line-through' : undefined}>{inline(task[2], `t${i}`)}</span>
+              <span className={task[1] !== ' ' ? 'text-ink-2 line-through' : undefined}>{inline(task[2], `t${i}`)}</span>
             </label>
           </li>
         ) : <li key={i} style={pad ? { marginLeft: `${pad * 1.25}rem` } : undefined}>{inline(text, `l${i}`)}</li>);

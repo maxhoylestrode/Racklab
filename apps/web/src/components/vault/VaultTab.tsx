@@ -49,30 +49,37 @@ export function VaultTab({ device }: { device: Device }) {
 
   if (status && !status.configured) {
     return (
-      <div className="rounded-lg border border-dashed border-slate-300 p-4 text-sm dark:border-slate-700">
-        <p className="font-medium">The vault is not set up yet.</p>
-        <p className="mt-1 text-slate-500">Set a vault master password on the Settings page. It is separate from the app password and is needed only to reveal secrets.</p>
+      <div className="vault-panel rounded-panel p-4 text-sm">
+        <p className="flex items-center gap-2 font-medium text-ink"><Icon name="lock" className="text-ink-2" />The vault is not set up yet.</p>
+        <p className="mt-1 text-ink-2">Set a vault master password on the Settings page. It is separate from the app password and is needed only to reveal secrets.</p>
       </div>
     );
   }
   const svcName = (id: string | null) => services.data?.find((s) => s.id === id)?.name;
+  const locked = !status?.unlocked;
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Credentials</h3>
-        <button className="btn btn-sm" onClick={() => setAdding(true)}><Icon name="plus" size={12} /> Add credential</button>
+      <div className="mb-3 flex h-8 items-center justify-between">
+        <h3 className="text-sm font-medium">Credentials</h3>
+        <button className="btn btn-sm" onClick={() => setAdding(true)}><Icon name="plus" /> Add credential</button>
       </div>
-      <p className="mb-3 text-[11px] leading-snug text-slate-500">Labels, usernames and URLs are stored in plain text. Passwords, TOTP seeds and private notes are encrypted with the vault key and only shown on reveal.</p>
-      {!creds.data?.length && <p className="text-xs text-slate-500">No credentials for this device or its services.</p>}
-      <ul className="space-y-2">
-        {creds.data?.map((c) => <CredentialRow key={c.id} c={c} serviceName={svcName(c.service_id)} onChanged={() => void creds.reload()} />)}
+      <div className={`mb-3 flex items-start gap-3 rounded-panel border px-3 py-3 text-xs ${locked ? 'border-line-strong bg-surface-inset text-ink-2' : 'border-warn/30 bg-warn/10 text-ink'}`} role="status">
+        <Icon name={locked ? 'lock' : 'unlock'} className={`mt-0.5 shrink-0 ${locked ? 'text-ink-2' : 'text-warn'}`} />
+        <p>{locked
+          ? 'Locked. Secrets stay encrypted; Reveal asks for the master password.'
+          : 'Unlocked. Revealed secrets hide again after 15 seconds.'}
+          {' '}Labels, usernames and URLs are plain text.</p>
+      </div>
+      {!creds.data?.length && <p className="text-sm text-ink-2">No credentials for this device or its services.</p>}
+      <ul className={`space-y-2 transition-opacity duration-base ${locked ? 'opacity-70' : ''}`}>
+        {creds.data?.map((c) => <CredentialRow key={c.id} c={c} locked={locked} serviceName={svcName(c.service_id)} onChanged={() => void creds.reload()} />)}
       </ul>
       {adding && <CredentialDialog device={device} services={services.data ?? []} onClose={() => setAdding(false)} onSaved={() => { setAdding(false); void creds.reload(); }} />}
     </div>
   );
 }
 
-function CredentialRow({ c, serviceName, onChanged }: { c: CredentialMeta; serviceName?: string; onChanged: () => void }) {
+function CredentialRow({ c, locked, serviceName, onChanged }: { c: CredentialMeta; locked: boolean; serviceName?: string; onChanged: () => void }) {
   const [revealed, setRevealed] = useState<RevealedCredential | null>(null);
   const [left, setLeft] = useState(0);
   const timer = useRef<number>();
@@ -96,36 +103,49 @@ function CredentialRow({ c, serviceName, onChanged }: { c: CredentialMeta; servi
   const hide = () => { setRevealed(null); window.clearInterval(timer.current); };
 
   return (
-    <li className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-      <div className="flex items-start gap-2">
-        <Icon name="key" size={14} className="mt-0.5 text-slate-400" />
+    <li className="vault-panel rounded-panel p-3">
+      <div className="flex items-center gap-3">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface-inset text-ink-2"><Icon name={locked ? 'lock' : 'key'} /></span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium">{c.label}{serviceName && <span className="ml-1 text-xs font-normal text-slate-500">· {serviceName}</span>}</div>
-          <div className="truncate text-xs text-slate-500">{c.username_plain ?? 'no username'}{c.url && <> · <a href={c.url} target="_blank" rel="noopener noreferrer" className="text-sky-500">{new URL(c.url).host}</a></>}</div>
+          <div className="truncate text-sm font-medium text-ink">{c.label}{serviceName && <span className="ml-1 text-xs font-normal text-ink-2">· {serviceName}</span>}</div>
+          <div className="truncate text-xs text-ink-2"><span className="font-mono">{c.username_plain ?? 'no username'}</span>{c.url && <> · <a href={c.url} target="_blank" rel="noopener noreferrer" className="link">{new URL(c.url).host}</a></>}</div>
         </div>
         {revealed
-          ? <button className="btn btn-sm" onClick={hide}><Icon name="eyeOff" size={12} /> Hide</button>
-          : <button className="btn btn-sm" onClick={() => void reveal()}><Icon name="eye" size={12} /> Reveal</button>}
+          ? <button className="btn btn-sm" onClick={hide}><Icon name="eyeOff" /> Hide</button>
+          : <button className="btn btn-sm" onClick={() => void reveal()}><Icon name="eye" /> Reveal</button>}
         <button className="btn btn-ghost btn-sm" aria-label={`Delete ${c.label}`} onClick={async () => {
           if (!(await confirmDialog({ title: 'Delete credential?', message: `Delete "${c.label}"? This cannot be undone.`, danger: true, confirmLabel: 'Delete' }))) return;
           try { await api.del(`/credentials/${c.id}`); onChanged(); } catch (e) { toast.error(e); }
         }}><Icon name="trash" size={12} /></button>
       </div>
       {revealed && (
-        <div className="mt-2 space-y-2 rounded-md bg-slate-100 p-2 dark:bg-slate-900">
-          <div className="flex items-center gap-2">
-            <code className="min-w-0 flex-1 break-all font-mono text-sm">{revealed.secret}</code>
-            <button className="btn btn-sm" onClick={() => void copySecret(revealed.secret, 'Password')}><Icon name="copy" size={12} /> Copy</button>
+        <div className="surface-inset mt-3 space-y-3 rounded-control p-3">
+          <div className="flex items-center gap-3">
+            <code className="min-w-0 flex-1 select-all break-all font-mono text-sm text-ink">{revealed.secret}</code>
+            <Countdown left={left} total={REVEAL_MS} />
+            <button className="btn btn-sm" onClick={() => void copySecret(revealed.secret, 'Password')}><Icon name="copy" /> Copy</button>
           </div>
           {revealed.totp_seed && <TotpCode seed={revealed.totp_seed} />}
-          {revealed.private_notes && <p className="whitespace-pre-wrap text-xs text-slate-600 dark:text-slate-300">{revealed.private_notes}</p>}
-          <div className="h-1 overflow-hidden rounded bg-slate-300 dark:bg-slate-700" aria-label={`Hides in ${Math.ceil(left / 1000)} seconds`}>
-            <div className="h-full bg-amber-500 transition-[width] duration-200" style={{ width: `${(left / REVEAL_MS) * 100}%` }} />
-          </div>
+          {revealed.private_notes && <p className="whitespace-pre-wrap border-t border-line pt-3 text-xs text-ink-2">{revealed.private_notes}</p>}
         </div>
       )}
-      {c.last_revealed_at && <p className="mt-1 text-[10px] text-slate-500">Last revealed {new Date(c.last_revealed_at).toLocaleString()}</p>}
+      {c.last_revealed_at && <p className="mt-2 text-xs text-ink-2">Last revealed <span className="font-mono">{new Date(c.last_revealed_at).toLocaleString()}</span></p>}
     </li>
+  );
+}
+
+/** Countdown ring with the seconds left in the middle. */
+function Countdown({ left, total }: { left: number; total: number }) {
+  const r = 11, c = 2 * Math.PI * r;
+  const s = Math.ceil(left / 1000);
+  return (
+    <span className="relative flex h-7 w-7 shrink-0 items-center justify-center" role="timer" aria-label={`Hides in ${s} seconds`}>
+      <svg width={28} height={28} viewBox="0 0 28 28" className="absolute inset-0 -rotate-90" aria-hidden>
+        <circle cx={14} cy={14} r={r} fill="none" stroke="currentColor" strokeOpacity={0.14} strokeWidth={2} />
+        <circle cx={14} cy={14} r={r} fill="none" stroke="rgb(var(--accent-rgb))" strokeWidth={2} strokeLinecap="round" strokeDasharray={`${(left / total) * c} ${c}`} className="transition-[stroke-dasharray] duration-base" />
+      </svg>
+      <span className="font-mono text-xs text-ink">{s}</span>
+    </span>
   );
 }
 
@@ -143,14 +163,11 @@ function TotpCode({ seed }: { seed: string }) {
     return () => { alive = false; clearInterval(t); };
   }, [seed]);
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-slate-500">TOTP</span>
-      <code className="font-mono text-lg tracking-widest">{code.slice(0, 3)} {code.slice(3)}</code>
-      <svg width={18} height={18} viewBox="0 0 20 20" aria-label={`${secs} seconds left`}>
-        <circle cx={10} cy={10} r={8} fill="none" stroke="currentColor" strokeOpacity={0.2} strokeWidth={3} />
-        <circle cx={10} cy={10} r={8} fill="none" stroke="#38bdf8" strokeWidth={3} strokeDasharray={`${(secs / 30) * 50.3} 50.3`} transform="rotate(-90 10 10)" />
-      </svg>
-      <button className="btn btn-ghost btn-sm ml-auto" onClick={() => void copySecret(code, 'Code')}><Icon name="copy" size={12} /></button>
+    <div className="flex items-center gap-3 border-t border-line pt-3">
+      <span className="eyebrow w-10">TOTP</span>
+      <code className="flex-1 font-mono text-lg tracking-[0.18em] text-ink">{code.slice(0, 3)} {code.slice(3)}</code>
+      <Countdown left={secs * 1000} total={30_000} />
+      <button className="btn btn-sm" aria-label="Copy TOTP code" onClick={() => void copySecret(code, 'Code')}><Icon name="copy" /></button>
     </div>
   );
 }
@@ -191,14 +208,14 @@ function CredentialDialog({ device, services, onClose, onSaved }: { device: Devi
             <button type="button" className="btn btn-sm" aria-label={show ? 'Hide password' : 'Show password'} onClick={() => setShow((s) => !s)}><Icon name={show ? 'eyeOff' : 'eye'} size={13} /></button>
             <button type="button" className="btn btn-sm" onClick={() => { set('secret', generatePassword(len, symbols)); setShow(true); }}>Generate</button>
           </div>
-          <div className="mt-1.5 flex items-center gap-3 text-xs">
-            <label className="flex items-center gap-1.5">Length <input type="range" min={12} max={64} value={len} onChange={(e) => setLen(Number(e.target.value))} aria-label="Generated length" className="accent-sky-500" /> {len}</label>
-            <label className="flex items-center gap-1.5"><input type="checkbox" checked={symbols} onChange={(e) => setSymbols(e.target.checked)} /> Symbols</label>
+          <div className="mt-2 flex items-center gap-3 text-xs">
+            <label className="flex items-center gap-2">Length <input type="range" min={12} max={64} value={len} onChange={(e) => setLen(Number(e.target.value))} aria-label="Generated length" /> <span className="w-6 font-mono">{len}</span></label>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={symbols} onChange={(e) => setSymbols(e.target.checked)} /> Symbols</label>
           </div>
         </div>
         <label className="col-span-2"><span className="label">TOTP seed (optional, base32)</span><input className="input font-mono" value={f.totp_seed} onChange={(e) => set('totp_seed', e.target.value)} autoComplete="off" /></label>
         <label className="col-span-2"><span className="label">Private notes (encrypted)</span><textarea className="input" rows={2} value={f.private_notes} onChange={(e) => set('private_notes', e.target.value)} /></label>
-        <div className="col-span-2 flex justify-end gap-2"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary">Save credential</button></div>
+        <div className="col-span-2 mt-2 flex justify-end gap-2"><button type="button" className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary">Save credential</button></div>
       </form>
     </Modal>
   );

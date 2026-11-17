@@ -143,7 +143,7 @@ export function RackScene({ rack, devices, templates, links, overlay, onContextM
       width={g.width}
       height={g.height}
       viewBox={`0 0 ${g.width} ${g.height}`}
-      className="block select-none"
+      className="rm-scene block select-none"
       style={{ willChange: 'transform', contain: 'paint' }}
       role="group"
       aria-label={`Rack ${rack?.name ?? ''}`}
@@ -153,7 +153,7 @@ export function RackScene({ rack, devices, templates, links, overlay, onContextM
       onPointerDown={(e) => { if (e.target === e.currentTarget) select(null); }}
     >
       <RackDefs />
-      <rect x={0} y={0} width={g.width} height={g.height} fill="url(#rm-ambient)" onPointerDown={() => select(null)} />
+      <rect x={0} y={0} width={g.width} height={g.height} fill="transparent" onPointerDown={() => select(null)} />
       <RackFrame g={g} occupied={occupied} name={rack?.name ?? 'No rack'} />
       <TrayPanel g={g} count={trayCount - (drag ? 1 : 0)} highlight={target?.kind === 'tray' ? 'ok' : 'none'} />
 
@@ -166,9 +166,9 @@ export function RackScene({ rack, devices, templates, links, overlay, onContextM
         return (
           <g
             key={d.id}
-            transform={`translate(${box.x} ${box.y})`}
+            transform={`translate(${box.x} ${box.y - (sel ? 1 : 0)})`}
             opacity={isDragging ? 0.35 : dim ? 0.22 : 1}
-            className={shakeId === d.id ? 'shake' : undefined}
+            className={`rm-device${sel ? ' is-selected' : ''}${shakeId === d.id ? ' shake' : ''}`}
             style={{ cursor: wireMode ? 'default' : 'grab', transformBox: 'fill-box' }}
             tabIndex={0}
             role="button"
@@ -186,14 +186,17 @@ export function RackScene({ rack, devices, templates, links, overlay, onContextM
             onContextMenu={(e) => { e.preventDefault(); select({ kind: 'device', id: d.id }); onContextMenu(d.id, e.clientX, e.clientY); }}
             onFocus={() => { if (!sel) select({ kind: 'device', id: d.id }); }}
           >
+            {/* seated in the rail: a soft shadow below (stronger when lifted by selection) */}
+            {p.where !== 'tray' && <rect x={1} y={box.h - 0.5} width={box.w - 2} height={sel ? 3.5 : 1.5} rx={1} fill="#000" fillOpacity={sel ? 0.55 : 0.6} pointerEvents="none" />}
             <DeviceArt w={box.w} h={box.h} device={d} tpl={p.tpl} linkedPorts={linkedPorts} jack={jackSize(p, g)} />
+            {p.where === 'rack' && <line x1={2} y1={0.5} x2={box.w - 2} y2={0.5} stroke="#ffffff" strokeOpacity={0.12} pointerEvents="none" />}
             {d.color_accent && p.tpl.category !== 'pc' && <rect x={0} y={0} width={3} height={box.h} fill={d.color_accent} pointerEvents="none" />}
-            {sel && <rect x={-2} y={-2} width={box.w + 4} height={box.h + 4} rx={4} fill="none" stroke="#38bdf8" strokeWidth={2} pointerEvents="none" />}
+            {sel && <rect x={-1.5} y={-1.5} width={box.w + 3} height={box.h + 3} rx={3} fill="none" stroke="#45dde0" strokeWidth={1.5} pointerEvents="none" />}
             {badge > 0 && (
               <g transform={`translate(${box.w - 4} ${4})`} pointerEvents="all">
                 <title>{`${badge} open project${badge === 1 ? '' : 's'}`}</title>
-                <circle r={Math.max(7, g.u * 0.17)} fill="#6366f1" stroke="#0b0f17" strokeWidth={1.5} />
-                <text y={Math.max(7, g.u * 0.17) * 0.42} textAnchor="middle" fontSize={Math.max(8, g.u * 0.2)} fontWeight={700} fill="#fff" fontFamily="ui-sans-serif, system-ui">{badge}</text>
+                <circle r={Math.max(7, g.u * 0.17)} fill="#45dde0" stroke="#0a0b0f" strokeWidth={1.5} />
+                <text y={Math.max(7, g.u * 0.17) * 0.4} textAnchor="middle" fontSize={Math.max(9, g.u * 0.2)} fontWeight={600} fill="#04201f" fontFamily="ui-monospace, monospace">{badge}</text>
               </g>
             )}
             {renaming === d.id && (
@@ -216,10 +219,10 @@ export function RackScene({ rack, devices, templates, links, overlay, onContextM
       {/* drop highlight: green when free, red when blocked */}
       {target && target.kind !== 'tray' && (
         <rect x={target.box.x} y={target.box.y} width={target.box.w} height={target.box.h} rx={3}
-          fill={target.ok ? '#22c55e' : '#ef4444'} fillOpacity={0.18} stroke={target.ok ? '#22c55e' : '#ef4444'} strokeWidth={2} pointerEvents="none" />
+          fill={target.ok ? '#4ad08c' : '#f06a72'} fillOpacity={0.12} stroke={target.ok ? '#4ad08c' : '#f06a72'} strokeWidth={1.5} strokeDasharray="5 4" pointerEvents="none" />
       )}
       {target && target.kind !== 'tray' && !target.ok && target.reason && (
-        <text x={target.box.x + target.box.w / 2} y={target.box.y - 6} textAnchor="middle" fontSize={11} fill="#fca5a5" pointerEvents="none" fontFamily="ui-sans-serif, system-ui">{target.reason}</text>
+        <text x={target.box.x + target.box.w / 2} y={target.box.y - 6} textAnchor="middle" fontSize={12} fill="#f6a5aa" pointerEvents="none" fontFamily="ui-sans-serif, system-ui">{target.reason}</text>
       )}
       {/* ghost following the pointer while moving */}
       {drag?.kind === 'move' && drag.active && (
@@ -256,7 +259,7 @@ function RenameInput({ initial, onDone }: { initial: string; onDone: (name: stri
   return (
     <input
       ref={ref}
-      className="input h-8 py-1 text-sm shadow-lg"
+      className="input shadow-overlay"
       aria-label="Device name"
       value={v}
       maxLength={100}

@@ -3,7 +3,7 @@ import type { ArtProps } from './types';
 /** Mid tower drawn side-on, standing on the shelf: tempered glass panel, RGB fan rings, lit accent strip. */
 export function TowerPcArt({ w, h, device }: ArtProps) {
   const off = device.status === 'offline';
-  const accent = device.color_accent ?? '#a855f7';
+  const accent = device.color_accent ?? '#7f8ea3';
   const caseX = w * 0.18, caseW = w * 0.64, caseY = h * 0.03, caseH = h * 0.94;
   const fanR = Math.min(caseW * 0.14, caseH * 0.13);
   return (
@@ -32,9 +32,9 @@ export function TowerPcArt({ w, h, device }: ArtProps) {
         );
       })}
       {/* accent strip */}
-      <rect x={caseX + caseW * 0.79} y={caseY + caseH * 0.05} width={Math.max(1.5, caseW * 0.015)} height={caseH * 0.86} fill={off ? '#334155' : accent} filter={off ? undefined : 'url(#rm-glow)'} />
+      <rect x={caseX + caseW * 0.79} y={caseY + caseH * 0.05} width={Math.max(1.5, caseW * 0.015)} height={caseH * 0.86} fill={off ? '#334155' : accent} />
       {/* power button */}
-      <circle cx={caseX + caseW * 0.88} cy={caseY + caseH * 0.08} r={Math.max(1.5, caseW * 0.025)} fill="#0b0c0e" stroke={off ? '#475569' : '#e2e8f0'} />
+      <circle cx={caseX + caseW * 0.88} cy={caseY + caseH * 0.08} r={Math.max(1.5, caseW * 0.025)} fill="#0b0c0e" stroke={off ? '#475569' : '#d5d9df'} />
       <text x={caseX + caseW * 0.08} y={caseY + caseH * 0.86} fontSize={Math.max(5, Math.min(10, h * 0.06))} fill="#94a3b8" fontFamily="ui-sans-serif, system-ui">{device.name}</text>
       {/* rear I/O column (where the jacks sit) */}
       <rect x={w * 0.84} y={h * 0.45} width={w * 0.06} height={h * 0.45} rx={1} fill="#1a1d22" stroke="#334155" strokeWidth={0.6} />

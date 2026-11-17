@@ -12,11 +12,9 @@ import { Icon } from '../components/Icon';
 
 const PRIORITY_RANK: Record<ProjectPriority, number> = { high: 0, medium: 1, low: 2 };
 const STATUS_RANK: Record<ProjectStatus, number> = { in_progress: 0, not_started: 1, complete: 2 };
-const PRIORITY_CHIP: Record<ProjectPriority, string> = {
-  high: 'border-rose-500/50 text-rose-600 dark:text-rose-300',
-  medium: 'border-amber-500/50 text-amber-600 dark:text-amber-300',
-  low: 'border-slate-400/50 text-slate-500',
-};
+// Colour only where it carries signal: high is red, the rest stay neutral.
+const PRIORITY_CHIP: Record<ProjectPriority, string> = { high: 'chip-bad', medium: '', low: '' };
+const STATUS_DOT: Record<ProjectStatus, string> = { not_started: 'bg-unknown', in_progress: 'bg-accent', complete: 'bg-ok' };
 
 const today = () => new Date().toISOString().slice(0, 10);
 const overdue = (p: Project) => !!p.due_date && p.status !== 'complete' && p.due_date < today();
@@ -61,20 +59,21 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="flex h-full">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="no-print flex flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-2 dark:border-slate-800">
-          <h1 className="mr-2 text-base font-semibold">Projects</h1>
-          <div className="flex rounded-md border border-slate-300 p-0.5 dark:border-slate-700" role="group" aria-label="Projects view">
-            <button className={`btn btn-sm border-0 ${projectsView === 'board' ? 'btn-on' : 'btn-ghost'}`} aria-pressed={projectsView === 'board'} onClick={() => setProjectsView('board')}><Icon name="board" size={13} /> Board</button>
-            <button className={`btn btn-sm border-0 ${projectsView === 'list' ? 'btn-on' : 'btn-ghost'}`} aria-pressed={projectsView === 'list'} onClick={() => setProjectsView('list')}><Icon name="list" size={13} /> List</button>
+    <div className="flex h-full gap-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="glass no-print flex h-12 shrink-0 items-center gap-3 rounded-panel pl-4 pr-2">
+          <h1 className="text-base font-medium">Projects</h1>
+          <span className="whitespace-nowrap font-mono text-xs text-ink-2 max-sm:hidden">{projects.filter((p) => p.status !== 'complete').length} open</span>
+          <div className="segmented sm:ml-2" role="group" aria-label="Projects view">
+            <button className="btn" aria-pressed={projectsView === 'board'} onClick={() => setProjectsView('board')}><Icon name="board" /> Board</button>
+            <button className="btn" aria-pressed={projectsView === 'list'} onClick={() => setProjectsView('list')}><Icon name="list" /> List</button>
           </div>
           <div className="flex-1" />
-          <button className="btn btn-primary" onClick={() => setCreating(true)}><Icon name="plus" size={13} /> New project</button>
+          <button className="btn btn-primary" onClick={() => setCreating(true)}><Icon name="plus" /><span className="max-sm:sr-only">New project</span></button>
         </div>
-        <div className="min-h-0 flex-1 overflow-auto p-4">
+        <div className="min-h-0 flex-1 overflow-auto">
           {data && projects.length === 0 ? (
-            <Empty title="No projects yet" action={<button className="btn btn-primary" onClick={() => setCreating(true)}>Plan your first project</button>}>
+            <Empty title="No projects yet" action={<button className="btn btn-primary" onClick={() => setCreating(true)}><Icon name="plus" />New project</button>}>
               Plan homelab work here, such as “Add a second NIC to the R420” or “Build a CT for Jellyfin”. Link projects to devices and services, or keep them standalone.
             </Empty>
           ) : projectsView === 'board'
@@ -116,28 +115,29 @@ function Board({ projects, onOpen, onMove, onQuickAdd }: {
   };
 
   return (
-    <div className="grid min-h-full gap-4 md:grid-cols-3" style={completeOpen ? undefined : { gridTemplateColumns: 'repeat(2, minmax(0, 1fr)) minmax(180px, 0.45fr)' }}>
+    <div className={`grid min-h-full gap-2 ${completeOpen ? 'md:grid-cols-3' : 'md:grid-cols-[repeat(2,minmax(0,1fr))_minmax(180px,0.45fr)]'}`}>
       <p id="card-kbd-hint" className="sr-only">Enter opens the project. M opens the status menu. Alt plus Up or Down reorders within the column.</p>
       {PROJECT_STATUSES.map((status) => {
         const list = cols[status];
         const collapsed = status === 'complete' && !completeOpen;
         return (
           <section key={status} aria-label={`${STATUS_LABEL[status]} column`}
-            className={`flex min-h-[200px] flex-col rounded-xl border bg-slate-50 p-2 dark:bg-slate-900/40 ${drop?.status === status ? 'border-sky-500' : 'border-slate-200 dark:border-slate-800'}`}
+            className={`glass flex min-h-[200px] flex-col rounded-panel p-2 ${drop?.status === status ? 'outline-dashed outline-1 -outline-offset-4 outline-accent' : ''}`}
             onDragOver={(e) => { if (drag) { e.preventDefault(); if (drop?.status !== status || list.length === 0) setDrop({ status, index: list.length }); } }}
             onDrop={(e) => { e.preventDefault(); void finishDrop(status, drop?.status === status ? drop.index : list.length); }}>
-            <header className="mb-2 flex items-center gap-2 px-1">
+            <header className="mb-2 flex h-8 items-center gap-2 px-2">
               {status === 'complete' && (
-                <button className="btn btn-ghost btn-sm px-1" aria-expanded={completeOpen} aria-label={completeOpen ? 'Collapse Complete' : 'Expand Complete'} onClick={() => setCompleteOpen((o) => !o)}>
+                <button className="btn btn-ghost btn-sm btn-icon -ml-2" aria-expanded={completeOpen} aria-label={completeOpen ? 'Collapse Complete' : 'Expand Complete'} onClick={() => setCompleteOpen((o) => !o)}>
                   <Icon name={completeOpen ? 'chevronDown' : 'chevronRight'} size={13} />
                 </button>
               )}
-              <h2 className="text-sm font-semibold">{STATUS_LABEL[status]}</h2>
-              <span className="chip">{list.length}</span>
+              <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[status]}`} aria-hidden />
+              <h2 className="text-sm font-medium text-ink">{STATUS_LABEL[status]}</h2>
+              <span className="font-mono text-xs text-ink-2">{list.length}</span>
             </header>
             {!collapsed && <QuickAdd onAdd={(t) => onQuickAdd(status, t)} label={STATUS_LABEL[status]} />}
             {collapsed ? (
-              <p className="px-1 text-xs text-slate-500">{list.length} completed. Expand to see them, or drop a card here to complete it.</p>
+              <p className="px-2 text-sm text-ink-2">{list.length} done. Expand to see them, or drop a card here to complete it.</p>
             ) : (
               <ol className="flex flex-1 flex-col gap-2">
                 {list.map((p, i) => (
@@ -149,13 +149,13 @@ function Board({ projects, onOpen, onMove, onQuickAdd }: {
                       setDrop({ status, index: e.clientY < r.top + r.height / 2 ? i : i + 1 });
                     }}
                     onDrop={(e) => { e.preventDefault(); e.stopPropagation(); void finishDrop(status, drop?.status === status ? drop.index : i); }}>
-                    {drop?.status === status && drop.index === i && drag !== p.id && <div className="mb-2 h-1 rounded bg-sky-500" />}
+                    {drop?.status === status && drop.index === i && drag !== p.id && <div className="mb-2 h-0.5 rounded-full bg-accent" />}
                     <Card p={p} dragging={drag === p.id} onOpen={() => onOpen(p.id)}
                       onDragStart={() => setDrag(p.id)} onDragEnd={() => { setDrag(null); setDrop(null); }}
                       menuOpen={menu === p.id} setMenu={(o) => setMenu(o ? p.id : null)}
                       onStatus={(s) => void onMove(p.id, s, cols[s].length)}
                       onShift={(d) => { const j = i + d; if (j >= 0 && j < list.length) void onMove(p.id, status, j); }} />
-                    {drop?.status === status && drop.index === list.length && i === list.length - 1 && <div className="mt-2 h-1 rounded bg-sky-500" />}
+                    {drop?.status === status && drop.index === list.length && i === list.length - 1 && <div className="mt-2 h-0.5 rounded-full bg-accent" />}
                   </li>
                 ))}
               </ol>
@@ -171,7 +171,7 @@ function QuickAdd({ onAdd, label }: { onAdd: (title: string) => Promise<void>; l
   const [v, setV] = useState('');
   return (
     <form className="mb-2" onSubmit={async (e) => { e.preventDefault(); const t = v.trim(); if (!t) return; setV(''); await onAdd(t); }}>
-      <input className="input py-1 text-xs" placeholder="+ Quick add (Enter)" value={v} maxLength={200} onChange={(e) => setV(e.target.value)} aria-label={`Quick add to ${label}`} />
+      <input className="input h-8 border-transparent bg-transparent text-sm placeholder:text-ink-2 hover:bg-surface-hover focus:bg-surface-field" placeholder="Add a project, press Enter" value={v} maxLength={200} onChange={(e) => setV(e.target.value)} aria-label={`Quick add to ${label}`} />
     </form>
   );
 }
@@ -183,7 +183,14 @@ function Card({ p, dragging, onOpen, onDragStart, onDragEnd, menuOpen, setMenu, 
   const ref = useRef<HTMLDivElement>(null);
   const links = linkLabel(p);
   return (
-    <div ref={ref} draggable onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', p.id); onDragStart(); }} onDragEnd={onDragEnd}
+    <div ref={ref} draggable onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', p.id);
+        // Lift for the drag snapshot (scale 1.02 and a deeper shadow), then settle into the placeholder state.
+        const el = e.currentTarget;
+        el.classList.add('is-lifting');
+        requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('is-lifting')));
+        onDragStart();
+      }} onDragEnd={onDragEnd}
       tabIndex={0} role="button" aria-describedby="card-kbd-hint"
       onClick={onOpen}
       onKeyDown={(e) => {
@@ -192,32 +199,32 @@ function Card({ p, dragging, onOpen, onDragStart, onDragEnd, menuOpen, setMenu, 
         else if (e.altKey && e.key === 'ArrowUp') { e.preventDefault(); onShift(-1); }
         else if (e.altKey && e.key === 'ArrowDown') { e.preventDefault(); onShift(1); }
       }}
-      className={`group relative cursor-pointer rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:border-sky-400 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-sky-700 ${dragging ? 'opacity-40' : ''}`}>
+      className={`kanban-card glass glass-raised glass-lite group relative cursor-pointer rounded-panel p-3 hover:border-white/20 ${dragging ? 'border-dashed !shadow-none opacity-40' : ''}`}>
       <div className="flex items-start gap-2">
-        <p className={`flex-1 text-sm font-medium ${p.status === 'complete' ? 'text-slate-500 line-through' : ''}`}>{p.title}</p>
-        <button className="btn btn-ghost btn-sm -mr-1 -mt-1 px-1 opacity-0 group-hover:opacity-100 focus:opacity-100" aria-haspopup="menu" aria-expanded={menuOpen} aria-label={`Change status of ${p.title}`}
-          onClick={(e) => { e.stopPropagation(); setMenu(!menuOpen); }}><Icon name="menu" size={12} /></button>
+        <p className={`flex-1 text-sm font-medium ${p.status === 'complete' ? 'text-ink-2 line-through' : 'text-ink'}`}>{p.title}</p>
+        <button className="btn btn-ghost btn-sm btn-icon -mr-1 -mt-1 opacity-0 group-hover:opacity-100 focus:opacity-100" aria-haspopup="menu" aria-expanded={menuOpen} aria-label={`Change status of ${p.title}`}
+          onClick={(e) => { e.stopPropagation(); setMenu(!menuOpen); }}><Icon name="more" /></button>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-1">
+      <div className="mt-3 flex flex-wrap items-center gap-1">
         <span className={`chip ${PRIORITY_CHIP[p.priority]}`}>{p.priority}</span>
-        {p.due_date && <span className={`chip ${overdue(p) ? 'border-rose-500 bg-rose-500/10 text-rose-600 dark:text-rose-300' : ''}`}>{overdue(p) ? 'Overdue ' : 'Due '}{p.due_date}</span>}
-        {links.map((l) => <span key={l} className="chip border-sky-500/40 text-sky-700 dark:text-sky-300"><Icon name="link" size={9} />{l}</span>)}
+        {p.due_date && <span className={`chip tabular ${overdue(p) ? 'chip-bad' : ''}`}>{overdue(p) ? 'Overdue ' : 'Due '}{p.due_date}</span>}
+        {links.map((l) => <span key={l} className="chip max-w-full"><span className="truncate">{l}</span></span>)}
       </div>
-      {p.tags.length > 0 && <div className="mt-1.5 flex flex-wrap gap-1">{p.tags.map((t) => <span key={t} className="text-[11px] text-slate-500">#{t}</span>)}</div>}
+      {p.tags.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{p.tags.map((t) => <span key={t} className="text-xs text-ink-2">#{t}</span>)}</div>}
       {p.task_progress.total > 0 && (
         <div className="mt-2 flex items-center gap-2" aria-label={`${p.task_progress.done} of ${p.task_progress.total} steps done`}>
-          <div className="h-1.5 flex-1 overflow-hidden rounded bg-slate-200 dark:bg-slate-800"><div className="h-full bg-emerald-500" style={{ width: `${(p.task_progress.done / p.task_progress.total) * 100}%` }} /></div>
-          <span className="text-[11px] text-slate-500">{p.task_progress.done} of {p.task_progress.total}</span>
+          <div className="h-1 flex-1 overflow-hidden rounded-full bg-surface-track"><div className="h-full rounded-full bg-accent" style={{ width: `${(p.task_progress.done / p.task_progress.total) * 100}%` }} /></div>
+          <span className="font-mono text-xs text-ink-2">{p.task_progress.done}/{p.task_progress.total}</span>
         </div>
       )}
       {menuOpen && (
-        <div role="menu" className="card absolute right-2 top-8 z-20 w-40 py-1 text-sm shadow-xl" onClick={(e) => e.stopPropagation()}
+        <div role="menu" className="menu absolute right-2 top-10 w-44" onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => { if (e.key === 'Escape') { setMenu(false); ref.current?.focus(); } }}>
           {PROJECT_STATUSES.map((s) => (
             <button key={s} role="menuitemradio" aria-checked={p.status === s} autoFocus={p.status === s}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-100 focus:bg-slate-100 dark:hover:bg-slate-800 dark:focus:bg-slate-800"
+              className="menu-item"
               onClick={() => { setMenu(false); if (s !== p.status) onStatus(s); ref.current?.focus(); }}>
-              <span className="w-3">{p.status === s ? '✓' : ''}</span>{STATUS_LABEL[s]}
+              <span className="flex w-4 justify-center text-accent">{p.status === s && <Icon name="check" />}</span>{STATUS_LABEL[s]}
             </button>
           ))}
         </div>
@@ -264,15 +271,15 @@ function ListView({ projects, onOpen, onStatus }: { projects: Project[]; onOpen:
 
   const Th = ({ k, children }: { k: SortKey; children: string }) => (
     <th aria-sort={sort.key === k ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
-      <button className="inline-flex items-center gap-1 uppercase" onClick={() => setSort((s) => ({ key: k, dir: s.key === k ? (s.dir === 1 ? -1 : 1) : 1 }))}>
-        {children}{sort.key === k && <span>{sort.dir === 1 ? '▲' : '▼'}</span>}
+      <button className="inline-flex items-center gap-1 uppercase tracking-label hover:text-ink" onClick={() => setSort((s) => ({ key: k, dir: s.key === k ? (s.dir === 1 ? -1 : 1) : 1 }))}>
+        {children}{sort.key === k && <Icon name={sort.dir === 1 ? 'chevronUp' : 'chevronDown'} className="text-accent" />}
       </button>
     </th>
   );
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-end gap-2">
+      <div className="glass mb-2 flex flex-wrap items-end gap-3 rounded-panel p-3">
         <label className="min-w-[180px] flex-1"><span className="label">Search</span><input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Title, description, tag" /></label>
         <label><span className="label">Status</span><select className="input" value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus | '')}><option value="">Any</option>{PROJECT_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}</select></label>
         <label><span className="label">Priority</span><select className="input" value={priority} onChange={(e) => setPriority(e.target.value as ProjectPriority | '')}><option value="">Any</option>{PROJECT_PRIORITIES.map((s) => <option key={s}>{s}</option>)}</select></label>
@@ -280,27 +287,27 @@ function ListView({ projects, onOpen, onStatus }: { projects: Project[]; onOpen:
         <label><span className="label">Device</span><select className="input" value={device} onChange={(e) => setDevice(e.target.value)}><option value="">Any</option>{devices.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
         <label><span className="label">Tag</span><select className="input" value={tag} onChange={(e) => setTag(e.target.value)}><option value="">Any</option>{allTags.map((t) => <option key={t}>{t}</option>)}</select></label>
       </div>
-      <div className="card overflow-x-auto">
+      <div className="surface-solid overflow-x-auto rounded-panel">
         <table className="table-base">
           <thead><tr><Th k="title">Title</Th><Th k="status">Status</Th><Th k="priority">Priority</Th><th>Linked to</th><Th k="due">Due</Th><th>Tags</th><Th k="updated">Updated</Th></tr></thead>
           <tbody>
             {rows.map((p) => (
-              <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                <td><button className="text-left font-medium hover:underline" onClick={() => onOpen(p.id)}>{p.title}</button>
-                  {p.task_progress.total > 0 && <span className="ml-2 text-[11px] text-slate-500">{p.task_progress.done}/{p.task_progress.total}</span>}</td>
+              <tr key={p.id}>
+                <td><button className="text-left text-ink hover:text-accent" onClick={() => onOpen(p.id)}>{p.title}</button>
+                  {p.task_progress.total > 0 && <span className="ml-2 font-mono text-xs text-ink-2">{p.task_progress.done}/{p.task_progress.total}</span>}</td>
                 <td>
-                  <select className="input w-auto py-1 text-xs" value={p.status} aria-label={`Status of ${p.title}`} onChange={(e) => void onStatus(p, e.target.value as ProjectStatus)}>
+                  <select className="input h-7 w-auto text-xs" value={p.status} aria-label={`Status of ${p.title}`} onChange={(e) => void onStatus(p, e.target.value as ProjectStatus)}>
                     {PROJECT_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
                   </select>
                 </td>
                 <td><span className={`chip ${PRIORITY_CHIP[p.priority]}`}>{p.priority}</span></td>
-                <td className="text-xs">{linkLabel(p).join(', ') || <span className="text-slate-400">Unlinked</span>}</td>
-                <td className={`text-xs ${overdue(p) ? 'font-medium text-rose-500' : ''}`}>{p.due_date ?? '—'}</td>
-                <td className="text-xs text-slate-500">{p.tags.map((t) => `#${t}`).join(' ')}</td>
-                <td className="text-xs text-slate-500">{new Date(p.updated_at).toLocaleDateString()}</td>
+                <td className="text-xs">{linkLabel(p).join(', ') || <span className="text-ink-3">Unlinked</span>}</td>
+                <td className={`font-mono text-xs ${overdue(p) ? 'text-bad' : ''}`}>{p.due_date ?? '—'}</td>
+                <td className="text-xs text-ink-2">{p.tags.map((t) => `#${t}`).join(' ')}</td>
+                <td className="font-mono text-xs text-ink-2">{new Date(p.updated_at).toLocaleDateString()}</td>
               </tr>
             ))}
-            {!rows.length && <tr><td colSpan={7} className="py-6 text-center text-sm text-slate-500">No projects match these filters.</td></tr>}
+            {!rows.length && <tr><td colSpan={7} className="py-6 text-sm text-ink-2">No projects match these filters.</td></tr>}
           </tbody>
         </table>
       </div>

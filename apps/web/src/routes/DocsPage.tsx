@@ -10,6 +10,7 @@ import { VlanDialog } from '../components/drawer/NetworkTab';
 import { ProjectDrawer, STATUS_LABEL } from '../components/projects/ProjectDrawer';
 import { StatusDot, confirmDialog } from '../components/ui';
 import { Icon } from '../components/Icon';
+import { TabPanel, Tabs } from '../components/primitives';
 
 const SECTIONS = ['Search', 'IP plan', 'Inventory', 'Notes', 'VLANs'] as const;
 type Section = (typeof SECTIONS)[number];
@@ -25,30 +26,26 @@ export default function DocsPage() {
   const { loaded, load } = useLab();
   useEffect(() => { if (!loaded) void load().catch(toast.error); }, [loaded, load]);
   return (
-    <div className="flex h-full flex-col">
-      <div className="no-print flex gap-1 border-b border-slate-200 px-3 dark:border-slate-800" role="tablist" aria-label="Docs sections">
-        {SECTIONS.map((s) => (
-          <button key={s} role="tab" aria-selected={section === s} onClick={() => setSection(s)}
-            className={`border-b-2 px-3 py-2.5 text-sm ${section === s ? 'border-sky-500 font-medium' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>
-            {s}
-          </button>
-        ))}
+    <div className="flex h-full flex-col gap-2">
+      <h1 className="sr-only">Docs</h1>
+      <div className="glass no-print shrink-0 rounded-panel px-4">
+        <Tabs tabs={SECTIONS} value={section} onChange={setSection} label="Docs sections" idPrefix="docs" className="h-12 items-end" />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl p-6">
+      <TabPanel idPrefix="docs" value={section} className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-5xl px-2 py-4 md:px-6">
           {section === 'Search' && <GlobalSearch />}
           {section === 'IP plan' && <IpPlan />}
           {section === 'Inventory' && <Inventory />}
           {section === 'Notes' && (
             <div>
-              <h1 className="mb-1 text-lg font-semibold">Global notes</h1>
-              <p className="mb-4 text-sm text-slate-500">Lab-wide notes such as ISP details and port forwarding rules.</p>
+              <h1 className="text-lg font-medium">Global notes</h1>
+              <p className="mb-6 mt-1 text-sm text-ink-2">Lab-wide notes such as ISP details and port forwarding rules.</p>
               <NotesPanel scope={{ global: true }} />
             </div>
           )}
           {section === 'VLANs' && <Vlans />}
         </div>
-      </div>
+      </TabPanel>
     </div>
   );
 }
@@ -80,36 +77,36 @@ function GlobalSearch() {
   const total = results ? Object.values(results).reduce((a, b) => a + b.length, 0) : 0;
 
   const Group = ({ title, children, n }: { title: string; n: number; children: React.ReactNode }) => n === 0 ? null : (
-    <section className="card p-4">
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{title} ({n})</h2>
-      <ul className="divide-y divide-slate-100 dark:divide-slate-800">{children}</ul>
+    <section className="surface-solid rounded-panel p-2">
+      <h2 className="eyebrow flex h-8 items-center gap-2 px-2">{title}<span className="font-mono normal-case tracking-normal">{n}</span></h2>
+      <ul>{children}</ul>
     </section>
   );
   const Row = ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
-    <li><button className="flex w-full items-center gap-2 px-1 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800/50" onClick={onClick}>{children}</button></li>
+    <li><button className="flex h-9 w-full items-center gap-3 rounded-control px-2 text-left text-sm text-ink transition-colors duration-fast hover:bg-surface-hover" onClick={onClick}>{children}</button></li>
   );
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <Icon name="search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input className="input py-2.5 pl-9 text-base" placeholder="Search devices, IPs, services, notes and projects" value={q} onChange={(e) => setQ(e.target.value)} autoFocus aria-label="Global search" />
+      <div className="glass glass-raised relative rounded-panel p-2">
+        <Icon name="search" size={20} className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-ink-2" />
+        <input className="input h-11 border-transparent bg-transparent pl-10 text-md focus:bg-surface-field" style={{ height: 44 }} placeholder="Search devices, IPs, services, notes and projects" value={q} onChange={(e) => setQ(e.target.value)} autoFocus aria-label="Global search" />
       </div>
-      {!results && <p className="text-sm text-slate-500">Type at least two characters.</p>}
-      {results && total === 0 && <p className="text-sm text-slate-500">Nothing matches “{q}”.</p>}
+      {!results && <p className="text-sm text-ink-2">Type at least two characters.</p>}
+      {results && total === 0 && <p className="text-sm text-ink-2">Nothing matches “{q}”.</p>}
       {results && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Group title="Devices" n={results.devices.length}>{results.devices.map((d) => <Row key={d.id} onClick={() => openDevice(d.id)}><StatusDot status={d.status} /><span className="flex-1">{d.name}</span><span className="text-xs text-slate-500">{d.role}</span></Row>)}</Group>
-          <Group title="IP addresses" n={results.ips.length}>{results.ips.map((i) => <Row key={i.id} onClick={() => openDevice(i.device_id)}><span className="font-mono text-xs">{i.address}</span><span className="flex-1 text-xs text-slate-500">{i.dns_name}</span><span className="text-xs">{i.device_name}</span></Row>)}</Group>
-          <Group title="Services" n={results.services.length}>{results.services.map((s) => <Row key={s.id} onClick={() => openDevice(s.device_id)}><StatusDot status={s.status} /><span className="flex-1">{s.name}</span><span className="text-xs text-slate-500">{s.kind} on {devName(s.device_id)}</span></Row>)}</Group>
-          <Group title="Notes" n={results.notes.length}>{results.notes.map((n) => <Row key={n.id} onClick={() => (n.device_id ? openDevice(n.device_id) : setNote(n))}><Icon name="docs" size={13} /><span className="flex-1">{n.title}</span><span className="text-xs text-slate-500">{n.device_id ? devName(n.device_id) : n.service_id ? 'service' : 'global'}</span></Row>)}</Group>
-          <Group title="Projects" n={results.projects.length}>{results.projects.map((p) => <Row key={p.id} onClick={() => setProject(p.id)}><Icon name="projects" size={13} /><span className="flex-1">{p.title}</span><span className="text-xs text-slate-500">{p.archived ? 'Archived' : STATUS_LABEL[p.status]}</span></Row>)}</Group>
+        <div className="grid items-start gap-2 md:grid-cols-2">
+          <Group title="Devices" n={results.devices.length}>{results.devices.map((d) => <Row key={d.id} onClick={() => openDevice(d.id)}><StatusDot status={d.status} /><span className="flex-1 truncate">{d.name}</span><span className="truncate text-xs text-ink-2">{d.role}</span></Row>)}</Group>
+          <Group title="IP addresses" n={results.ips.length}>{results.ips.map((i) => <Row key={i.id} onClick={() => openDevice(i.device_id)}><span className="w-28 shrink-0 font-mono text-xs">{i.address}</span><span className="flex-1 truncate font-mono text-xs text-ink-2">{i.dns_name}</span><span className="truncate text-xs">{i.device_name}</span></Row>)}</Group>
+          <Group title="Services" n={results.services.length}>{results.services.map((s) => <Row key={s.id} onClick={() => openDevice(s.device_id)}><StatusDot status={s.status} /><span className="flex-1">{s.name}</span><span className="text-xs text-ink-2">{s.kind} on {devName(s.device_id)}</span></Row>)}</Group>
+          <Group title="Notes" n={results.notes.length}>{results.notes.map((n) => <Row key={n.id} onClick={() => (n.device_id ? openDevice(n.device_id) : setNote(n))}><Icon name="docs" className="text-ink-2" /><span className="flex-1">{n.title}</span><span className="text-xs text-ink-2">{n.device_id ? devName(n.device_id) : n.service_id ? 'service' : 'global'}</span></Row>)}</Group>
+          <Group title="Projects" n={results.projects.length}>{results.projects.map((p) => <Row key={p.id} onClick={() => setProject(p.id)}><Icon name="projects" className="text-ink-2" /><span className="flex-1">{p.title}</span><span className="text-xs text-ink-2">{p.archived ? 'Archived' : STATUS_LABEL[p.status]}</span></Row>)}</Group>
         </div>
       )}
       {project && <ProjectDrawer projectId={project} overlay onClose={() => { setProject(null); void projects.reload(); }} />}
       {note && (
-        <div className="card p-4">
-          <div className="mb-2 flex items-center justify-between"><h3 className="font-semibold">{note.title}</h3><button className="btn btn-ghost btn-sm" onClick={() => setNote(null)} aria-label="Close note"><Icon name="close" size={13} /></button></div>
-          <pre className="whitespace-pre-wrap text-sm">{note.body_markdown}</pre>
+        <div className="surface-solid rounded-panel p-4">
+          <div className="mb-2 flex items-center justify-between"><h3 className="font-medium">{note.title}</h3><button className="btn btn-ghost btn-sm" onClick={() => setNote(null)} aria-label="Close note"><Icon name="close" size={13} /></button></div>
+          <pre className="whitespace-pre-wrap font-mono text-xs leading-5 text-ink">{note.body_markdown}</pre>
         </div>
       )}
     </div>
@@ -130,7 +127,7 @@ function IpPlan() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-end gap-3">
-        <h1 className="mr-auto text-lg font-semibold">IP address plan</h1>
+        <div className="mr-auto"><h1 className="text-lg font-medium">IP address plan</h1><p className="mt-1 text-sm text-ink-2">Every address, sorted numerically.</p></div>
         <label><span className="label">VLAN</span>
           <select className="input w-48" value={vlan} onChange={(e) => setVlan(e.target.value)}>
             <option value="">All VLANs</option><option value="none">No VLAN</option>
@@ -143,8 +140,8 @@ function IpPlan() {
           </select>
         </label>
       </div>
-      {!rows.length ? <p className="text-sm text-slate-500">No IP addresses{vlan || status ? ' match these filters' : ' yet. Add them from a device’s Network tab'}.</p> : (
-        <div className="card overflow-x-auto">
+      {!rows.length ? <p className="text-sm text-ink-2">No IP addresses{vlan || status ? ' match these filters' : ' yet. Add them from a device’s Network tab'}.</p> : (
+        <div className="surface-solid overflow-x-auto rounded-panel">
           <table className="table-base">
             <thead><tr><th>Address</th><th>Device</th><th>DNS name</th><th>Kind</th><th>VLAN</th><th>Status</th><th>Warnings</th></tr></thead>
             <tbody>
@@ -152,13 +149,13 @@ function IpPlan() {
                 const d = devices.find((x) => x.id === i.device_id);
                 return (
                   <tr key={i.id}>
-                    <td className="font-mono text-xs">{i.is_primary && <span className="mr-1 text-amber-500" title="Primary">★</span>}{i.address}/{i.prefix_length}</td>
-                    <td><button className="text-sky-600 hover:underline dark:text-sky-400" onClick={() => { select({ kind: 'device', id: i.device_id }); navigate('/'); }}>{i.device_name}</button></td>
-                    <td className="text-xs">{i.dns_name ?? '—'}</td>
+                    <td className="whitespace-nowrap font-mono text-xs"><span className="inline-flex items-center gap-1"><span className="inline-flex w-4 text-ink-2">{i.is_primary && <Icon name="star" title="Primary" />}</span>{i.address}<span className="text-ink-2">/{i.prefix_length}</span></span></td>
+                    <td><button className="link" onClick={() => { select({ kind: 'device', id: i.device_id }); navigate('/'); }}>{i.device_name}</button></td>
+                    <td className="font-mono text-xs">{i.dns_name ?? '—'}</td>
                     <td className="text-xs">{i.kind}</td>
-                    <td className="text-xs">{i.vlan_number ?? '—'}</td>
-                    <td className="text-xs"><span className="inline-flex items-center gap-1.5"><StatusDot status={d?.status ?? 'unknown'} />{d?.status}</span></td>
-                    <td className="text-xs text-amber-600 dark:text-amber-300">{i.warnings.map((w) => w.message).join('; ')}</td>
+                    <td className="font-mono text-xs">{i.vlan_number ?? '—'}</td>
+                    <td className="text-xs"><span className="inline-flex items-center gap-2"><StatusDot status={d?.status ?? 'unknown'} />{d?.status}</span></td>
+                    <td className="text-xs text-warn">{i.warnings.map((w) => w.message).join('; ')}</td>
                   </tr>
                 );
               })}
@@ -184,12 +181,12 @@ function Inventory() {
   };
   return (
     <div>
-      <div className="mb-4 flex items-center">
-        <h1 className="mr-auto text-lg font-semibold">Device inventory</h1>
-        <button className="btn no-print" onClick={() => window.print()}><Icon name="print" size={14} /> Print</button>
+      <div className="mb-4 flex items-end">
+        <div className="mr-auto"><h1 className="text-lg font-medium">Device inventory</h1><p className="mt-1 text-sm text-ink-2">{rows.length} devices. Shelves are left out.</p></div>
+        <button className="btn no-print" onClick={() => window.print()}><Icon name="print" /> Print</button>
       </div>
       <p className="mb-3 hidden text-xs print:block">RackMap inventory, printed {new Date().toLocaleString()}</p>
-      <div className="card overflow-x-auto print:border-0 print:shadow-none">
+      <div className="surface-solid overflow-x-auto rounded-panel print:border-0 print:shadow-none">
         <table className="table-base">
           <thead><tr><th>Name</th><th>Model</th><th>Location</th><th>Hostname</th><th>Primary IP</th><th>OS</th><th>Role</th><th>Status</th><th>Tags</th></tr></thead>
           <tbody>
@@ -198,11 +195,11 @@ function Inventory() {
                 <td className="font-medium">{d.name}</td>
                 <td className="text-xs">{templates.find((t) => t.id === d.template_id)?.name}</td>
                 <td className="text-xs">{where(d.id)}</td>
-                <td className="text-xs">{d.hostname ?? '—'}</td>
+                <td className="font-mono text-xs">{d.hostname ?? '—'}</td>
                 <td className="font-mono text-xs">{primary(d.id) ?? '—'}</td>
                 <td className="text-xs">{d.os ?? '—'}</td>
                 <td className="text-xs">{d.role ?? '—'}</td>
-                <td className="text-xs">{d.status}</td>
+                <td className="text-xs"><span className="inline-flex items-center gap-2"><StatusDot status={d.status} />{d.status}</span></td>
                 <td className="text-xs">{d.tags.join(', ')}</td>
               </tr>
             ))}
@@ -218,12 +215,12 @@ function Vlans() {
   const [editing, setEditing] = useState<Vlan | 'new' | null>(null);
   return (
     <div>
-      <div className="mb-4 flex items-center">
-        <h1 className="mr-auto text-lg font-semibold">VLANs</h1>
-        <button className="btn" onClick={() => setEditing('new')}><Icon name="plus" size={13} /> New VLAN</button>
+      <div className="mb-4 flex items-end">
+        <div className="mr-auto"><h1 className="text-lg font-medium">VLANs</h1><p className="mt-1 text-sm text-ink-2">Used by the IP plan and subnet warnings.</p></div>
+        <button className="btn" onClick={() => setEditing('new')}><Icon name="plus" /> New VLAN</button>
       </div>
-      {!vlans.data?.length ? <p className="text-sm text-slate-500">No VLANs defined.</p> : (
-        <div className="card overflow-x-auto">
+      {!vlans.data?.length ? <p className="text-sm text-ink-2">No VLANs yet. Add one to group addresses and catch IPs outside their subnet.</p> : (
+        <div className="surface-solid overflow-x-auto rounded-panel">
           <table className="table-base">
             <thead><tr><th>VLAN</th><th>Name</th><th>Subnet</th><th /></tr></thead>
             <tbody>

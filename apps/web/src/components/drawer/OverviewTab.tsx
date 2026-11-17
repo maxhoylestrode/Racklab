@@ -35,8 +35,8 @@ export function OverviewTab({ device, tpl }: { device: Device; tpl: DeviceTempla
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-center rounded-lg bg-[#0b0f17] p-3"><DeviceThumb device={device} tpl={tpl} width={tpl.form_factor === 'loose' ? 180 : 340} /></div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="surface-inset flex justify-center rounded-panel px-4 py-6"><DeviceThumb device={device} tpl={tpl} width={tpl.form_factor === 'loose' ? 180 : 340} /></div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-4">
         <div className="col-span-2"><Field label="Name" value={device.name} onSave={(v) => v && save({ name: v })} /></div>
         <div>
           <label className="label" htmlFor="f-status">Status</label>
@@ -46,7 +46,7 @@ export function OverviewTab({ device, tpl }: { device: Device; tpl: DeviceTempla
         </div>
         <div>
           <span className="label">Template</span>
-          <p className="truncate py-1.5 text-sm">{tpl.name}</p>
+          <p className="flex h-8 items-center truncate text-sm text-ink">{tpl.name}</p>
         </div>
         <Field label="Hostname" value={device.hostname} onSave={(v) => save({ hostname: v })} />
         <Field label="Role" value={device.role} onSave={(v) => save({ role: v })} />
@@ -54,7 +54,7 @@ export function OverviewTab({ device, tpl }: { device: Device; tpl: DeviceTempla
         <div>
           <label className="label" htmlFor="f-accent">Accent colour</label>
           <div className="flex items-center gap-2">
-            <input id="f-accent" type="color" className="h-8 w-10 cursor-pointer rounded border border-slate-300 bg-transparent dark:border-slate-700" value={device.color_accent ?? '#38bdf8'} onChange={(e) => void save({ color_accent: e.target.value })} />
+            <input id="f-accent" type="color" value={device.color_accent ?? '#7f8ea3'} onChange={(e) => void save({ color_accent: e.target.value })} />
             {device.color_accent && <button className="btn btn-ghost btn-sm" onClick={() => void save({ color_accent: null })}>Clear</button>}
           </div>
         </div>
@@ -69,7 +69,7 @@ export function OverviewTab({ device, tpl }: { device: Device; tpl: DeviceTempla
         </div>
         <div className="col-span-2">
           <span className="label">Rack position</span>
-          <p className="text-sm">{position}</p>
+          <p className="text-sm text-ink">{position}</p>
         </div>
       </div>
       <DeviceProjects device={device} />
@@ -83,19 +83,19 @@ function DeviceProjects({ device }: { device: Device }) {
   const [open, setOpen] = useState<string | null>(null);
   const refreshBadges = useLab((s) => s.refreshBadges);
   return (
-    <section aria-labelledby="dev-projects" className="border-t border-slate-200 pt-3 dark:border-slate-800">
+    <section aria-labelledby="dev-projects" className="border-t border-line pt-4">
       <div className="mb-2 flex items-center justify-between">
-        <h3 id="dev-projects" className="text-sm font-semibold">Projects</h3>
-        <button className="btn btn-sm" onClick={() => setAdding(true)}><Icon name="plus" size={12} /> Add project</button>
+        <h3 id="dev-projects" className="text-sm font-medium">Projects</h3>
+        <button className="btn btn-sm" onClick={() => setAdding(true)}><Icon name="plus" /> Add project</button>
       </div>
-      {!data?.length && <p className="text-xs text-slate-500">No open projects linked to this device or its services.</p>}
-      <ul className="space-y-1">
+      {!data?.length && <p className="text-sm text-ink-2">No open projects for this device or its services.</p>}
+      <ul className="-mx-2">
         {data?.map((p) => (
           <li key={p.id}>
-            <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => setOpen(p.id)}>
-              <span className={`h-2 w-2 rounded-full ${p.status === 'in_progress' ? 'bg-sky-500' : 'bg-slate-400'}`} />
+            <button className="flex h-8 w-full items-center gap-2 rounded-control px-2 text-left text-sm text-ink transition-colors duration-fast hover:bg-surface-hover" onClick={() => setOpen(p.id)}>
+              <span className={`h-2 w-2 shrink-0 rounded-full ${p.status === 'in_progress' ? 'bg-accent' : 'bg-unknown'}`} aria-hidden />
               <span className="flex-1 truncate">{p.title}</span>
-              <span className="text-[11px] text-slate-500">{p.status === 'in_progress' ? 'In progress' : 'Not started'}</span>
+              <span className="text-xs text-ink-2">{p.status === 'in_progress' ? 'In progress' : 'Not started'}</span>
             </button>
           </li>
         ))}

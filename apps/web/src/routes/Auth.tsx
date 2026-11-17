@@ -7,15 +7,11 @@ import { Logo } from '../components/Logo';
 
 function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(ellipse_at_top,_#1e293b_0%,_#0b0f17_60%)] p-4">
-      <div className="card w-full max-w-sm p-6">
-        <div className="mb-5 flex items-center gap-3">
-          <Logo size={36} />
-          <div>
-            <h1 className="text-lg font-semibold">{title}</h1>
-            <p className="text-xs text-slate-500">{subtitle}</p>
-          </div>
-        </div>
+    <main className="flex min-h-screen items-center justify-center p-4">
+      <div className="glass glass-overlay w-full max-w-sm rounded-panel p-8">
+        <Logo size={32} />
+        <h1 className="mt-6 text-lg font-medium text-ink">{title}</h1>
+        <p className="mb-6 mt-1 text-sm text-ink-2">{subtitle}</p>
         {children}
       </div>
     </main>
@@ -41,15 +37,15 @@ export function SetupScreen() {
         <label className="label" htmlFor="setup-pw">App password</label>
         <input id="setup-pw" type="password" className="input" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" autoFocus aria-describedby="setup-pw-help" />
         <StrengthMeter value={pw} />
-        <p id="setup-pw-help" className={`mt-1 text-xs ${tooShort ? 'text-rose-500' : 'text-slate-500'}`}>At least {APP_PASSWORD_MIN} characters.</p>
+        <p id="setup-pw-help" className={`mt-1 text-xs ${tooShort ? 'text-bad' : 'text-ink-2'}`}>At least {APP_PASSWORD_MIN} characters.</p>
         <label className="label mt-4" htmlFor="setup-pw2">Confirm password</label>
         <input id="setup-pw2" type="password" className="input" value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" />
-        {mismatch && <p className="mt-1 text-xs text-rose-500">Passwords do not match.</p>}
-        {err && <p className="mt-3 text-sm text-rose-500" role="alert">{err}</p>}
-        <button className="btn btn-primary mt-5 w-full" disabled={busy || pw.length < APP_PASSWORD_MIN || pw !== pw2}>
+        {mismatch && <p className="mt-1 text-xs text-bad">Passwords do not match.</p>}
+        {err && <p className="mt-3 text-sm text-bad" role="alert">{err}</p>}
+        <button className="btn btn-primary mt-6 w-full" disabled={busy || pw.length < APP_PASSWORD_MIN || pw !== pw2}>
           {busy ? 'Setting up…' : 'Set password and continue'}
         </button>
-        <p className="mt-4 text-xs text-slate-500">The vault for credentials has its own, separate master password. You set it later.</p>
+        <p className="mt-4 border-t border-line pt-4 text-xs text-ink-2">The vault for credentials has its own, separate master password. You set it later.</p>
       </form>
     </Shell>
   );
@@ -77,8 +73,8 @@ export function LoginScreen() {
       }}>
         <label className="label" htmlFor="login-pw">App password</label>
         <input id="login-pw" type="password" className="input" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="current-password" autoFocus />
-        {err && <p className="mt-3 text-sm text-rose-500" role="alert">{err}</p>}
-        <button className="btn btn-primary mt-5 w-full" disabled={busy || !pw}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        {err && <p className="mt-3 text-sm text-bad" role="alert">{err}</p>}
+        <button className="btn btn-primary mt-6 w-full" disabled={busy || !pw}>{busy ? 'Signing in…' : 'Sign in'}</button>
       </form>
     </Shell>
   );

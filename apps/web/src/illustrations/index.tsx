@@ -42,7 +42,7 @@ export const DeviceArt = memo(function DeviceArt({ w, h, device, tpl, linkedPort
         <Jack key={p.id} port={p} x={(p.layout_x / 1000) * w} y={(p.layout_y / (tpl.height_u * 100)) * h} s={jack} linked={linkedPorts.has(p.id) && !offline} offline={offline} />
       ))}
       {offline && <rect width={w} height={h} rx={2} fill="#475569" fillOpacity={0.35} pointerEvents="none" />}
-      {device.status === 'planned' && <rect width={w} height={h} rx={2} fill="none" stroke="#38bdf8" strokeDasharray="4 3" pointerEvents="none" />}
+      {device.status === 'planned' && <rect width={w} height={h} rx={2} fill="none" stroke="#8c94a1" strokeDasharray="4 3" pointerEvents="none" />}
     </g>
   );
 });

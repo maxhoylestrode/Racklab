@@ -7,13 +7,16 @@ import { useVault } from '../store/vault';
 import { useLab } from '../store/lab';
 import { useUi, UNIT_MIN, UNIT_MAX } from '../store/ui';
 import { StrengthMeter, confirmDialog, Modal } from '../components/ui';
+import { Icon } from '../components/Icon';
 
 function Section({ title, children, desc }: { title: string; desc?: ReactNode; children: ReactNode }) {
   return (
-    <section className="card p-5">
-      <h2 className="text-base font-semibold">{title}</h2>
-      {desc && <p className="mt-1 text-sm text-slate-500">{desc}</p>}
-      <div className="mt-4">{children}</div>
+    <section className="glass grid gap-4 rounded-panel p-6 md:grid-cols-[220px_1fr] md:gap-8">
+      <div>
+        <h2 className="text-base font-medium text-ink">{title}</h2>
+        {desc && <p className="mt-1 text-sm text-ink-2">{desc}</p>}
+      </div>
+      <div className="min-w-0">{children}</div>
     </section>
   );
 }
@@ -29,14 +32,14 @@ export default function SettingsPage() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-3xl space-y-5 p-6">
-        <h1 className="text-xl font-semibold">Settings</h1>
+      <div className="mx-auto max-w-4xl space-y-2 px-2 py-4 md:px-6">
+        <h1 className="px-6 pb-2 text-lg font-medium">Settings</h1>
 
         <Section title="Vault" desc={<>The vault encrypts passwords, TOTP seeds and private notes with a key only your vault master password (or recovery phrase) can unlock. Usernames, IPs, URLs and ordinary notes are <strong>not</strong> encrypted.</>}>
           {!status ? null : !status.configured ? <VaultSetup onDone={() => void refresh()} /> : (
             <div className="space-y-4">
-              <p className="text-sm">Status: <strong>{status.unlocked ? 'Unlocked' : 'Locked'}</strong>. Auto-locks after {s?.vault_auto_lock_minutes ?? 10} minutes of inactivity.</p>
-              <label className="flex items-center gap-3 text-sm">Auto-lock after
+              <p className="flex items-center gap-2 text-sm text-ink"><span className={`chip ${status.unlocked ? 'chip-warn' : ''}`}><Icon name={status.unlocked ? 'unlock' : 'lock'} />{status.unlocked ? 'Unlocked' : 'Locked'}</span> Auto-locks after {s?.vault_auto_lock_minutes ?? 10} minutes of inactivity.</p>
+              <label className="flex items-center gap-3 text-sm text-ink-2">Auto-lock after
                 <select className="input w-auto" value={s?.vault_auto_lock_minutes ?? 10} onChange={(e) => void save({ vault_auto_lock_minutes: Number(e.target.value) })}>
                   {[1, 2, 5, 10].map((m) => <option key={m} value={m}>{m} minute{m === 1 ? '' : 's'}</option>)}
                 </select>
@@ -54,7 +57,7 @@ export default function SettingsPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <RackHeight />
             <label className="block"><span className="label">Default unit height ({s?.default_unit_height_px ?? 44}px)</span>
-              <input type="range" min={UNIT_MIN} max={UNIT_MAX} className="w-full accent-sky-500" value={s?.default_unit_height_px ?? 44}
+              <input type="range" min={UNIT_MIN} max={UNIT_MAX} className="mt-2 w-full" value={s?.default_unit_height_px ?? 44}
                 onChange={(e) => settings.setData({ ...(s as Settings), default_unit_height_px: Number(e.target.value) })}
                 onMouseUp={(e) => { const v = Number((e.target as HTMLInputElement).value); void save({ default_unit_height_px: v }); useUi.getState().setUnitPx(v); }}
                 onKeyUp={(e) => { const v = Number((e.target as HTMLInputElement).value); void save({ default_unit_height_px: v }); useUi.getState().setUnitPx(v); }} />
@@ -107,7 +110,7 @@ function RackHeight() {
       } catch (err) { toast.error(err); }
     }}>
       <span className="label">Rack height: {rack.name}</span>
-      <div className="flex gap-2"><input type="number" min={1} max={60} className="input" value={u} onChange={(e) => setU(Number(e.target.value))} aria-label="Rack height in units" /><button className="btn">Apply</button></div>
+      <div className="flex gap-2"><input type="number" min={1} max={60} className="input font-mono" value={u} onChange={(e) => setU(Number(e.target.value))} aria-label="Rack height in units" /><button className="btn">Apply</button></div>
     </form>
   );
 }
@@ -129,8 +132,8 @@ function ChangePassword({ kind }: { kind: 'app' | 'vault' }) {
     }}>
       <label><span className="label">Current {kind === 'app' ? 'app' : 'master'} password</span><input type="password" className="input" value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" /></label>
       <label><span className="label">New password</span><input type="password" className="input" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" /><StrengthMeter value={next} /></label>
-      {err && <p className="text-sm text-rose-500 sm:col-span-2" role="alert">{err}</p>}
-      <div className="sm:col-span-2"><button className="btn" disabled={!cur || next.length < min}>Change {kind === 'app' ? 'app' : 'master'} password</button> <span className="text-xs text-slate-500">At least {min} characters.</span></div>
+      {err && <p className="text-sm text-bad sm:col-span-2" role="alert">{err}</p>}
+      <div className="flex items-center gap-3 sm:col-span-2"><button className="btn" disabled={!cur || next.length < min}>Change {kind === 'app' ? 'app' : 'master'} password</button> <span className="text-xs text-ink-2">At least {min} characters.</span></div>
     </form>
   );
 }
@@ -154,18 +157,18 @@ function VaultSetup({ onDone }: { onDone: () => void }) {
           <label><span className="label">Vault master password</span><input type="password" className="input" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" /><StrengthMeter value={pw} /></label>
           <label><span className="label">Confirm</span><input type="password" className="input" value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" /></label>
         </div>
-        <p className="text-xs text-slate-500">At least {VAULT_PASSWORD_MIN} characters, and different from the app password.</p>
-        {err && <p className="text-sm text-rose-500" role="alert">{err}</p>}
+        <p className="text-xs text-ink-2">At least {VAULT_PASSWORD_MIN} characters, and different from the app password.</p>
+        {err && <p className="text-sm text-bad" role="alert">{err}</p>}
         <button className="btn btn-primary" disabled={busy || pw.length < VAULT_PASSWORD_MIN || pw !== pw2}>{busy ? 'Creating vault…' : 'Create vault'}</button>
       </form>
       <Modal open={!!phrase} onClose={() => { if (saved) { setPhrase(null); onDone(); } }} title="Your recovery phrase" width="max-w-xl">
         <p className="text-sm">Write these 24 words down and keep them somewhere safe and offline. They unlock the vault if you forget the master password. <strong>This is the only time they are shown.</strong></p>
-        <ol className="my-4 grid grid-cols-3 gap-x-4 gap-y-1 rounded-lg bg-slate-100 p-4 font-mono text-sm dark:bg-slate-900 sm:grid-cols-4">
-          {phrase?.split(' ').map((w, i) => <li key={i}><span className="mr-1 text-slate-400">{i + 1}.</span>{w}</li>)}
+        <ol className="surface-inset my-4 grid grid-cols-3 gap-x-4 gap-y-2 rounded-control p-4 font-mono text-sm text-ink sm:grid-cols-4">
+          {phrase?.split(' ').map((w, i) => <li key={i}><span className="mr-2 inline-block w-5 text-right text-ink-2">{i + 1}</span>{w}</li>)}
         </ol>
-        <p className="rounded-md bg-rose-500/10 p-2 text-sm text-rose-600 dark:text-rose-300">If you lose both the master password and this phrase, your secrets cannot be recovered by anyone.</p>
+        <p className="flex items-start gap-2 rounded-control border border-bad/30 bg-bad/10 px-3 py-2 text-sm text-ink"><Icon name="warning" className="mt-0.5 shrink-0 text-bad" />If you lose both the master password and this phrase, your secrets cannot be recovered by anyone.</p>
         <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} /> I have written the recovery phrase down</label>
-        <div className="mt-4 flex justify-end"><button className="btn btn-primary" disabled={!saved} onClick={() => { setPhrase(null); onDone(); }}>Done</button></div>
+        <div className="mt-6 flex justify-end"><button className="btn btn-primary" disabled={!saved} onClick={() => { setPhrase(null); onDone(); }}>Done</button></div>
       </Modal>
     </>
   );

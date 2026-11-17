@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../store/auth';
 import { useUi } from '../store/ui';
@@ -6,6 +6,7 @@ import { useVault } from '../store/vault';
 import { toast } from '../store/toast';
 import { Logo } from './Logo';
 import { Icon } from './Icon';
+import { Tooltip } from './primitives';
 
 const NAV = [
   { to: '/', label: 'Rack', icon: 'rack' as const, end: true },
@@ -28,61 +29,88 @@ export function VaultIndicator() {
   // Accessible name starts with the visible text (WCAG 2.5.3 label in name).
   const label = !status.configured ? 'No vault: set one up in Settings' : unlocked ? 'Unlocked vault: click to lock' : 'Locked vault: click to unlock';
   return (
-    <button
-      className={`btn btn-sm ${unlocked ? 'border-amber-500/60 text-amber-600 dark:text-amber-300' : ''}`}
-      title={label}
-      aria-label={label}
-      onClick={async () => {
-        try {
-          if (unlocked) { await lock(); toast.info('Vault locked'); }
-          else if (await ensureUnlocked()) toast.success('Vault unlocked');
-        } catch (e) { toast.error(e); }
-      }}
-    >
-      <Icon name={unlocked ? 'unlock' : 'lock'} size={14} />
-      <span className="hidden sm:inline">{unlocked ? 'Unlocked' : status.configured ? 'Locked' : 'No vault'}</span>
-    </button>
+    <Tooltip content={!status.configured ? 'Set up the vault in Settings' : unlocked ? 'Secrets can be revealed. Click to lock now.' : 'Click to unlock'}>
+      <button
+        className={`btn btn-sm ${unlocked ? 'border-warn/40 bg-warn/10 text-warn hover:bg-warn/15' : 'btn-ghost'}`}
+        aria-label={label}
+        onClick={async () => {
+          try {
+            if (unlocked) { await lock(); toast.info('Vault locked'); }
+            else if (await ensureUnlocked()) toast.success('Vault unlocked');
+          } catch (e) { toast.error(e); }
+        }}
+      >
+        <Icon name={unlocked ? 'unlock' : 'lock'} />
+        <span className="hidden sm:inline">{unlocked ? 'Unlocked' : status.configured ? 'Locked' : 'No vault'}</span>
+      </button>
+    </Tooltip>
+  );
+}
+
+function MoreMenu() {
+  const logout = useAuth((s) => s.logout);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const loc = useLocation();
+  useEffect(() => setOpen(false), [loc.pathname]);
+  useEffect(() => {
+    if (!open) return;
+    ref.current?.querySelector<HTMLElement>('[role=menuitem]')?.focus();
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    window.addEventListener('mousedown', close);
+    return () => window.removeEventListener('mousedown', close);
+  }, [open]);
+  return (
+    <div className="relative" ref={ref}>
+      <button className="btn btn-ghost btn-sm btn-icon" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((m) => !m)} aria-label="More">
+        <Icon name="more" />
+      </button>
+      {open && (
+        <div role="menu" className="menu absolute right-0 top-9 w-48"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setOpen(false);
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              e.preventDefault();
+              const items = [...(ref.current?.querySelectorAll<HTMLElement>('[role=menuitem]') ?? [])];
+              const i = items.indexOf(document.activeElement as HTMLElement);
+              items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus();
+            }
+          }}>
+          <NavLink role="menuitem" to="/settings" className="menu-item"><Icon name="settings" className="text-ink-2" />Settings</NavLink>
+          <NavLink role="menuitem" to="/audit" className="menu-item"><Icon name="history" className="text-ink-2" />Audit log</NavLink>
+          <div className="menu-sep" role="separator" />
+          <button role="menuitem" className="menu-item" onClick={() => void logout()}><Icon name="logout" className="text-ink-2" />Sign out</button>
+        </div>
+      )}
+    </div>
   );
 }
 
 export function Layout() {
-  const logout = useAuth((s) => s.logout);
   const { theme, setTheme } = useUi();
-  const loc = useLocation();
-  const [menu, setMenu] = useState(false);
-  useEffect(() => setMenu(false), [loc.pathname]);
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <a href="#main" className="sr-only z-50 rounded bg-sky-600 px-3 py-1.5 text-white focus:not-sr-only focus:absolute focus:left-2 focus:top-2">Skip to content</a>
-      <header className="no-print z-30 flex h-12 shrink-0 items-center gap-2 border-b border-slate-200 bg-white/80 px-3 backdrop-blur dark:border-slate-800 dark:bg-[#0d121c]/90">
-        <NavLink to="/" className="mr-2 flex items-center gap-2 font-semibold" aria-label="RackMap home">
-          <Logo size={24} /> <span className="hidden md:inline">RackMap</span>
+    <div className="flex h-screen flex-col gap-2 overflow-hidden p-2">
+      <a href="#main" className="sr-only z-toast rounded-control bg-accent px-3 py-2 text-accent-ink focus:not-sr-only focus:absolute focus:left-4 focus:top-4">Skip to content</a>
+      <header className="glass no-print relative z-toolbar flex h-12 shrink-0 items-center gap-2 rounded-panel pl-3 pr-2">
+        <NavLink to="/" className="mr-2 flex items-center gap-2 rounded-control text-sm font-medium tracking-tight" aria-label="RackMap home">
+          <Logo size={20} /> <span className="hidden md:inline">RackMap</span>
         </NavLink>
-        <nav className="flex items-center gap-0.5" aria-label="Main">
+        <nav className="flex items-center gap-1" aria-label="Main">
           {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.end}
-              className={({ isActive }) => `flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition ${isActive ? 'bg-slate-200 font-medium text-slate-900 dark:bg-slate-800 dark:text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60'}`}>
-              <Icon name={n.icon} size={15} /> <span className="hidden sm:inline">{n.label}</span>
+            <NavLink key={n.to} to={n.to} end={n.end} aria-label={n.label}
+              className={({ isActive }) => `flex h-8 items-center gap-2 rounded-control px-2 text-sm transition-colors duration-fast sm:px-3 ${isActive ? 'bg-accent/10 font-medium text-accent' : 'text-ink-2 hover:bg-surface-hover hover:text-ink'}`}>
+              <Icon name={n.icon} /> <span className="hidden sm:inline">{n.label}</span>
             </NavLink>
           ))}
         </nav>
         <div className="flex-1" />
         <VaultIndicator />
-        <button className="btn btn-ghost btn-sm" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`} title="Toggle theme">
-          <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={15} />
-        </button>
-        <div className="relative">
-          <button className="btn btn-ghost btn-sm" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)} aria-label="More">
-            <Icon name="menu" size={16} />
+        <Tooltip content={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
           </button>
-          {menu && (
-            <div role="menu" className="card absolute right-0 top-9 z-40 w-44 py-1 text-sm" onKeyDown={(e) => e.key === 'Escape' && setMenu(false)}>
-              <NavLink role="menuitem" to="/settings" className="block px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800">Settings</NavLink>
-              <NavLink role="menuitem" to="/audit" className="block px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800">Audit log</NavLink>
-              <button role="menuitem" className="block w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => void logout()}>Sign out</button>
-            </div>
-          )}
-        </div>
+        </Tooltip>
+        <MoreMenu />
       </header>
       <main id="main" tabIndex={-1} className="relative min-h-0 flex-1 outline-none">
         <Outlet />

@@ -17,6 +17,23 @@ export const useWiring = create<WiringState>((set) => ({
   cancel: () => set({ pending: null }),
 }));
 
+const ACCENT = '#45dde0';
+
+/** Real cable jackets are less saturated than their swatch: mix 25% toward a mid grey and darken slightly. */
+const cableCache = new Map<string, string>();
+export function cableTone(hex: string): string {
+  const hit = cableCache.get(hex);
+  if (hit) return hit;
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const grey = (ch[0] + ch[1] + ch[2]) / 3;
+  const out = '#' + ch.map((c) => Math.round((c * 0.75 + grey * 0.25) * 0.9).toString(16).padStart(2, '0')).join('');
+  cableCache.set(hex, out);
+  return out;
+}
+
 const fmtSpeed = (m: number | null) => (m == null ? '' : m >= 1000 ? `${m / 1000}G` : `${m}M`);
 
 function friendly(e: unknown): string {
@@ -96,7 +113,7 @@ export const Cables = memo(function Cables({ scene, dimmed }: { scene: SceneApi;
       {showCables && [hovered, routed.find((r) => r.link.id === selectedLink)].filter(Boolean).map((r) => (
         <g key={`ends-${r!.link.id}`} pointerEvents="none">
           {[r!.a, r!.b].map((e) => (
-            <circle key={e.port.id} cx={e.pt.x} cy={e.pt.y} r={jackSize(e.placed, g) * 0.95} fill="none" stroke="#fde047" strokeWidth={2} filter="url(#rm-glow)" />
+            <circle key={e.port.id} cx={e.pt.x} cy={e.pt.y} r={jackSize(e.placed, g) * 0.95} fill="none" stroke={ACCENT} strokeWidth={1.5} />
           ))}
         </g>
       ))}
@@ -115,8 +132,8 @@ export const Cables = memo(function Cables({ scene, dimmed }: { scene: SceneApi;
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); void clickPort(port.id); } }}
             style={{ cursor: busy && !pending ? 'not-allowed' : 'crosshair' }}>
             <title>{`${p.device.name} ${port.label} (${port.kind}${port.speed_mbps ? ` ${fmtSpeed(port.speed_mbps)}` : ''}${port.poe ? ' PoE' : ''})`}</title>
-            <circle cx={pt.x} cy={pt.y} r={s * 0.95} fill={isPending ? '#38bdf8' : busy ? '#64748b' : '#22d3ee'} fillOpacity={isPending ? 0.55 : 0.18}
-              stroke={isPending ? '#38bdf8' : busy ? '#64748b' : '#22d3ee'} strokeWidth={1.5} className={isPending || busy ? undefined : 'port-target'} />
+            <circle cx={pt.x} cy={pt.y} r={s * 0.95} fill={busy && !isPending ? '#6b7280' : ACCENT} fillOpacity={isPending ? 0.5 : 0.14}
+              stroke={busy && !isPending ? '#6b7280' : ACCENT} strokeOpacity={busy && !isPending ? 0.7 : 1} strokeWidth={1.25} className={isPending || busy ? undefined : 'port-target'} />
           </g>
         );
       }))}
@@ -125,7 +142,7 @@ export const Cables = memo(function Cables({ scene, dimmed }: { scene: SceneApi;
       {pendingEnd && mouse && (() => {
         const a = portPoint(pendingEnd.placed, pendingEnd.port);
         const dx = mouse.x - a.x;
-        return <path d={`M${a.x} ${a.y} C${a.x + dx * 0.3} ${a.y + 30} ${mouse.x - dx * 0.3} ${mouse.y + 30} ${mouse.x} ${mouse.y}`} fill="none" stroke="#38bdf8" strokeWidth={2.5} strokeDasharray="6 4" pointerEvents="none" />;
+        return <path d={`M${a.x} ${a.y} C${a.x + dx * 0.3} ${a.y + 30} ${mouse.x - dx * 0.3} ${mouse.y + 30} ${mouse.x} ${mouse.y}`} fill="none" stroke={ACCENT} strokeWidth={2} strokeLinecap="round" strokeDasharray="6 5" pointerEvents="none" />;
       })()}
 
       {/* tooltip */}
@@ -138,7 +155,8 @@ const Cable = memo(function Cable({ r, selected, hovered, faded, wireMode, onHov
   r: Routed; selected: boolean; hovered: boolean; faded: boolean; wireMode: boolean;
   onHover: (on: boolean, x: number, y: number) => void; onSelect: () => void;
 }) {
-  const w = selected || hovered ? 4 : 3;
+  const w = selected || hovered ? 3 : 2.25;
+  const tone = cableTone(r.link.cable_color);
   const svgPoint = (e: React.PointerEvent) => {
     const m = (e.currentTarget as SVGGraphicsElement).ownerSVGElement?.getScreenCTM();
     const p = m ? new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse()) : { x: 0, y: 0 };
@@ -146,12 +164,14 @@ const Cable = memo(function Cable({ r, selected, hovered, faded, wireMode, onHov
   };
   return (
     <g opacity={faded ? 0.12 : 1} pointerEvents={wireMode ? 'none' : undefined}>
-      <path d={r.d} fill="none" stroke="#000" strokeOpacity={0.45} strokeWidth={w + 2.5} strokeLinecap="round" pointerEvents="none" />
-      <path d={r.d} fill="none" stroke={r.link.cable_color} strokeWidth={w} strokeLinecap="round" strokeDasharray={r.link.cable_type === 'fibre' ? '1 0' : undefined} pointerEvents="none" />
-      <path d={r.d} fill="none" stroke="#ffffff" strokeOpacity={0.22} strokeWidth={1} strokeLinecap="round" transform="translate(-0.6 -0.6)" pointerEvents="none" />
-      {selected && <path d={r.d} fill="none" stroke="#fde047" strokeWidth={1.2} strokeDasharray="4 4" pointerEvents="none" />}
+      {/* soft shadow underneath, offset down */}
+      <path d={r.d} fill="none" stroke="#000" strokeOpacity={0.38} strokeWidth={w + 2} strokeLinecap="round" transform="translate(0 1.5)" pointerEvents="none" />
+      {selected && <path d={r.d} fill="none" stroke={ACCENT} strokeOpacity={0.35} strokeWidth={w + 4} strokeLinecap="round" pointerEvents="none" />}
+      <path d={r.d} fill="none" stroke={tone} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={r.link.cable_type === 'fibre' ? '1 0' : undefined} pointerEvents="none" />
+      {/* jacket sheen */}
+      <path d={r.d} fill="none" stroke="#ffffff" strokeOpacity={0.14} strokeWidth={0.75} strokeLinecap="round" transform="translate(-0.4 -0.5)" pointerEvents="none" />
       {/* plug boots */}
-      {[r.a, r.b].map((e) => <circle key={e.port.id} cx={e.pt.x} cy={e.pt.y} r={2.2} fill={r.link.cable_color} stroke="#000" strokeOpacity={0.5} pointerEvents="none" />)}
+      {[r.a, r.b].map((e) => <circle key={e.port.id} cx={e.pt.x} cy={e.pt.y} r={2.4} fill={tone} stroke="#000" strokeOpacity={0.55} pointerEvents="none" />)}
       {/* wide invisible hit path */}
       <path d={r.d} fill="none" stroke="transparent" strokeWidth={12} style={{ cursor: 'pointer' }}
         role="button" tabIndex={0} aria-label={`Cable ${r.a.placed.device.name} ${r.a.port.label} to ${r.b.placed.device.name} ${r.b.port.label}`}
@@ -173,14 +193,15 @@ function CableTooltip({ r, x, y, width }: { r: Routed; x: number; y: number; wid
     `${r.a.placed.device.name} ${r.a.port.label} → ${r.b.placed.device.name} ${r.b.port.label}`,
     `${l.cable_type.toUpperCase()}${l.length_m ? ` · ${l.length_m} m` : ''}${l.label ? ` · ${l.label}` : ''}`,
   ];
-  const w = Math.max(...lines.map((s) => s.length)) * 6.4 + 20;
+  const w = Math.max(...lines.map((s) => s.length)) * 6.9 + 36;
   const tx = Math.min(Math.max(4, x + 12), width - w - 4);
   return (
     <g transform={`translate(${tx} ${y + 14})`} pointerEvents="none">
-      <rect width={w} height={42} rx={6} fill="#0f172a" fillOpacity={0.95} stroke="#334155" />
-      <rect x={8} y={9} width={8} height={8} rx={2} fill={l.cable_color} />
-      <text x={22} y={17} fontSize={11.5} fill="#f1f5f9" fontFamily="ui-sans-serif, system-ui" fontWeight={600}>{lines[0]}</text>
-      <text x={10} y={33} fontSize={11} fill="#94a3b8" fontFamily="ui-sans-serif, system-ui">{lines[1]}</text>
+      <rect width={w} height={46} rx={10} fill="#16181e" fillOpacity={0.97} stroke="#ffffff" strokeOpacity={0.12} />
+      <line x1={10} y1={0.5} x2={w - 10} y2={0.5} stroke="#ffffff" strokeOpacity={0.12} />
+      <circle cx={16} cy={17} r={4} fill={cableTone(l.cable_color)} />
+      <text x={26} y={21} fontSize={12} fill="#ebedf0" fontFamily="ui-sans-serif, system-ui" fontWeight={500}>{lines[0]}</text>
+      <text x={12} y={37} fontSize={12} fill="#a3a9b2" fontFamily="ui-monospace, monospace">{lines[1]}</text>
     </g>
   );
 }

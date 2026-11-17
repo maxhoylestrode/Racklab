@@ -14,7 +14,7 @@ const AuditPage = lazy(() => import('./routes/AuditPage'));
 const SettingsPage = lazy(() => import('./routes/SettingsPage'));
 
 function Loading() {
-  return <div className="flex h-full items-center justify-center text-sm text-slate-500">Loading…</div>;
+  return <div className="flex h-full items-center justify-center text-sm text-ink-2" role="status">Loading…</div>;
 }
 
 export function App() {

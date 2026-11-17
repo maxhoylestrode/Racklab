@@ -1,20 +1,13 @@
+/** A 2U-ish unit seen face on: graphite body, two blanking slots, one lit link LED. */
 export function Logo({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-      <defs>
-        <linearGradient id="logo-g" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#334155" />
-          <stop offset="1" stopColor="#0f172a" />
-        </linearGradient>
-      </defs>
-      <rect x="5" y="2" width="22" height="28" rx="3" fill="url(#logo-g)" stroke="#475569" />
-      <rect x="8" y="6" width="16" height="4" rx="1" fill="#1e293b" />
-      <circle cx="10.5" cy="8" r="1" fill="#22c55e" />
-      <circle cx="13.5" cy="8" r="1" fill="#22c55e" />
-      <rect x="8" y="12" width="16" height="4" rx="1" fill="#1e293b" />
-      <circle cx="10.5" cy="14" r="1" fill="#f59e0b" />
-      <rect x="8" y="18" width="16" height="7" rx="1" fill="#1e293b" />
-      <path d="M24 20 C 30 20, 30 26, 24 26" stroke="#3b82f6" strokeWidth="1.5" fill="none" />
+      <rect x="3" y="4" width="26" height="24" rx="5" fill="#1a1d23" stroke="rgb(255 255 255 / 0.16)" />
+      <rect x="7" y="9" width="18" height="5" rx="1.5" fill="#0c0d10" stroke="rgb(255 255 255 / 0.08)" />
+      <rect x="7" y="18" width="18" height="5" rx="1.5" fill="#0c0d10" stroke="rgb(255 255 255 / 0.08)" />
+      <circle cx="10" cy="11.5" r="1.2" fill="rgb(69 221 224)" />
+      <rect x="13" y="11" width="9" height="1" rx="0.5" fill="rgb(255 255 255 / 0.18)" />
+      <rect x="13" y="20" width="6" height="1" rx="0.5" fill="rgb(255 255 255 / 0.12)" />
     </svg>
   );
 }
