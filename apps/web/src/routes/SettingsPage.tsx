@@ -148,7 +148,7 @@ function ChangePassword({ kind }: { kind: 'app' | 'vault' }) {
       <label><span className="label">Current {kind === 'app' ? 'app' : 'master'} password</span><input type="password" className="input" value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" /></label>
       <label><span className="label">New password</span><input type="password" className="input" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" /><StrengthMeter value={next} /></label>
       {err && <p className="text-sm text-bad sm:col-span-2" role="alert">{err}</p>}
-      <div className="flex items-center gap-3 sm:col-span-2"><button className="btn" disabled={!cur || next.length < min}>Change {kind === 'app' ? 'app' : 'master'} password</button> <span className="text-xs text-ink-2">At least {min} characters.</span></div>
+      <div className="flex items-center gap-3 sm:col-span-2"><button className="btn" disabled={!cur || next.length < min}>Change {kind === 'app' ? 'app' : 'master'} password</button> <span className={`text-xs ${cur && next && next.length < min ? 'text-warn' : 'text-ink-2'}`} aria-live="polite">{next && next.length < min ? `${min - next.length} more characters needed (at least ${min}).` : !cur && next ? 'Enter the current password too.' : `At least ${min} characters.`}</span></div>
     </form>
   );
 }
@@ -160,6 +160,9 @@ function VaultSetup({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [phrase, setPhrase] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const blocker = pw.length < VAULT_PASSWORD_MIN
+    ? `At least ${VAULT_PASSWORD_MIN} characters (${pw.length ? `${VAULT_PASSWORD_MIN - pw.length} more needed` : 'none yet'}).`
+    : pw !== pw2 ? (pw2 ? 'The two passwords do not match.' : 'Type the password again under Confirm.') : null;
   return (
     <>
       <form className="space-y-3" onSubmit={async (e) => {
@@ -172,9 +175,10 @@ function VaultSetup({ onDone }: { onDone: () => void }) {
           <label><span className="label">Vault master password</span><input type="password" className="input" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" /><StrengthMeter value={pw} /></label>
           <label><span className="label">Confirm</span><input type="password" className="input" value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" /></label>
         </div>
-        <p className="text-xs text-ink-2">At least {VAULT_PASSWORD_MIN} characters, and different from the app password.</p>
+        {/* Say exactly why Create is not available yet, instead of only disabling it. */}
+        <p className={`text-xs ${blocker ? 'text-warn' : 'text-ink-2'}`} role="status" aria-live="polite">{blocker ?? 'Ready. It must also differ from the app password.'}</p>
         {err && <p className="text-sm text-bad" role="alert">{err}</p>}
-        <button className="btn btn-primary" disabled={busy || pw.length < VAULT_PASSWORD_MIN || pw !== pw2}>{busy ? 'Creating vault…' : 'Create vault'}</button>
+        <button className="btn btn-primary" disabled={busy || !!blocker}>{busy ? 'Creating vault…' : 'Create vault'}</button>
       </form>
       <Modal open={!!phrase} onClose={() => { if (saved) { setPhrase(null); onDone(); } }} title="Your recovery phrase" width="max-w-xl">
         <p className="text-sm">Write these 24 words down and keep them somewhere safe and offline. They unlock the vault if you forget the master password. <strong>This is the only time they are shown.</strong></p>
