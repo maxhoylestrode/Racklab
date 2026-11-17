@@ -39,7 +39,7 @@ export function Toaster() {
       <AnimatePresence initial={false}>
         {toasts.map((t) => (
           <motion.div key={t.id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} transition={{ duration: 0.2, ease: PANEL_EASE }}
-            className="glass glass-overlay pointer-events-auto flex items-start gap-3 rounded-panel py-3 pl-3 pr-2 text-sm">
+            className="panel panel-overlay pointer-events-auto flex items-start gap-3 rounded-panel py-3 pl-3 pr-2 text-sm">
             <span className={`mt-2 h-2 w-2 shrink-0 rounded-full ${TOAST_TONE[t.kind]}`} aria-hidden />
             <span className="min-w-0 flex-1 text-ink">{t.message}</span>
             <button className="btn btn-ghost btn-sm btn-icon -my-1" onClick={() => dismiss(t.id)} aria-label="Dismiss"><Icon name="close" /></button>

@@ -63,7 +63,7 @@ export function VaultTab({ device }: { device: Device }) {
         <h3 className="text-sm font-medium">Credentials</h3>
         <button className="btn btn-sm" onClick={() => setAdding(true)}><Icon name="plus" /> Add credential</button>
       </div>
-      <div className={`mb-3 flex items-start gap-3 rounded-panel border px-3 py-3 text-xs ${locked ? 'border-line-strong bg-surface-inset text-ink-2' : 'border-warn/30 bg-warn/10 text-ink'}`} role="status">
+      <div className={`mb-3 flex items-start gap-3 rounded-panel border px-3 py-3 text-xs ${locked ? 'border-line-strong bg-panel-sunk text-ink-2' : 'border-warn/30 bg-warn/5 text-ink'}`} role="status">
         <Icon name={locked ? 'lock' : 'unlock'} className={`mt-0.5 shrink-0 ${locked ? 'text-ink-2' : 'text-warn'}`} />
         <p>{locked
           ? 'Locked. Secrets stay encrypted; Reveal asks for the master password.'
@@ -71,7 +71,7 @@ export function VaultTab({ device }: { device: Device }) {
           {' '}Labels, usernames and URLs are plain text.</p>
       </div>
       {!creds.data?.length && <p className="text-sm text-ink-2">No credentials for this device or its services.</p>}
-      <ul className={`space-y-2 transition-opacity duration-base ${locked ? 'opacity-70' : ''}`}>
+      <ul className={`space-y-2 ${locked ? '[&_.icon-tile]:opacity-50 [&_.vault-panel]:bg-panel-sunk' : ''}`}>
         {creds.data?.map((c) => <CredentialRow key={c.id} c={c} locked={locked} serviceName={svcName(c.service_id)} onChanged={() => void creds.reload()} />)}
       </ul>
       {adding && <CredentialDialog device={device} services={services.data ?? []} onClose={() => setAdding(false)} onSaved={() => { setAdding(false); void creds.reload(); }} />}
@@ -105,7 +105,7 @@ function CredentialRow({ c, locked, serviceName, onChanged }: { c: CredentialMet
   return (
     <li className="vault-panel rounded-panel p-3">
       <div className="flex items-center gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-surface-inset text-ink-2"><Icon name={locked ? 'lock' : 'key'} /></span>
+        <span className="icon-tile"><Icon name={locked ? 'lock' : 'key'} /></span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium text-ink">{c.label}{serviceName && <span className="ml-1 text-xs font-normal text-ink-2">· {serviceName}</span>}</div>
           <div className="truncate text-xs text-ink-2"><span className="font-mono">{c.username_plain ?? 'no username'}</span>{c.url && <> · <a href={c.url} target="_blank" rel="noopener noreferrer" className="link">{new URL(c.url).host}</a></>}</div>
@@ -119,14 +119,14 @@ function CredentialRow({ c, locked, serviceName, onChanged }: { c: CredentialMet
         }}><Icon name="trash" size={12} /></button>
       </div>
       {revealed && (
-        <div className="surface-inset mt-3 space-y-3 rounded-control p-3">
+        <div className="secret-field mt-3 space-y-3 rounded-control p-3">
           <div className="flex items-center gap-3">
-            <code className="min-w-0 flex-1 select-all break-all font-mono text-sm text-ink">{revealed.secret}</code>
+            <code className="min-w-0 flex-1 select-all break-all font-mono text-md">{revealed.secret}</code>
             <Countdown left={left} total={REVEAL_MS} />
             <button className="btn btn-sm" onClick={() => void copySecret(revealed.secret, 'Password')}><Icon name="copy" /> Copy</button>
           </div>
           {revealed.totp_seed && <TotpCode seed={revealed.totp_seed} />}
-          {revealed.private_notes && <p className="whitespace-pre-wrap border-t border-line pt-3 text-xs text-ink-2">{revealed.private_notes}</p>}
+          {revealed.private_notes && <p className="whitespace-pre-wrap border-t border-white/10 pt-3 text-xs text-white/75">{revealed.private_notes}</p>}
         </div>
       )}
       {c.last_revealed_at && <p className="mt-2 text-xs text-ink-2">Last revealed <span className="font-mono">{new Date(c.last_revealed_at).toLocaleString()}</span></p>}
@@ -142,9 +142,9 @@ function Countdown({ left, total }: { left: number; total: number }) {
     <span className="relative flex h-7 w-7 shrink-0 items-center justify-center" role="timer" aria-label={`Hides in ${s} seconds`}>
       <svg width={28} height={28} viewBox="0 0 28 28" className="absolute inset-0 -rotate-90" aria-hidden>
         <circle cx={14} cy={14} r={r} fill="none" stroke="currentColor" strokeOpacity={0.14} strokeWidth={2} />
-        <circle cx={14} cy={14} r={r} fill="none" stroke="rgb(var(--accent-rgb))" strokeWidth={2} strokeLinecap="round" strokeDasharray={`${(left / total) * c} ${c}`} className="transition-[stroke-dasharray] duration-base" />
+        <circle cx={14} cy={14} r={r} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeDasharray={`${(left / total) * c} ${c}`} className="transition-[stroke-dasharray] duration-base" />
       </svg>
-      <span className="font-mono text-xs text-ink">{s}</span>
+      <span className="font-mono text-xs">{s}</span>
     </span>
   );
 }
@@ -163,9 +163,9 @@ function TotpCode({ seed }: { seed: string }) {
     return () => { alive = false; clearInterval(t); };
   }, [seed]);
   return (
-    <div className="flex items-center gap-3 border-t border-line pt-3">
-      <span className="eyebrow w-10">TOTP</span>
-      <code className="flex-1 font-mono text-lg tracking-[0.18em] text-ink">{code.slice(0, 3)} {code.slice(3)}</code>
+    <div className="flex items-center gap-3 border-t border-white/10 pt-3">
+      <span className="w-10 text-2xs font-medium uppercase tracking-label text-white/75">TOTP</span>
+      <code className="flex-1 font-mono text-lg tracking-[0.18em]">{code.slice(0, 3)} {code.slice(3)}</code>
       <Countdown left={secs * 1000} total={30_000} />
       <button className="btn btn-sm" aria-label="Copy TOTP code" onClick={() => void copySecret(code, 'Code')}><Icon name="copy" /></button>
     </div>

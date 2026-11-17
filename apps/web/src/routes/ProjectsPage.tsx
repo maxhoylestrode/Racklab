@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PROJECT_PRIORITIES, PROJECT_STATUSES, type Project, type ProjectPriority, type ProjectStatus } from '@rackmap/shared';
 import { useFetch } from '../lib/useFetch';
 import { api } from '../lib/api';
@@ -8,6 +8,8 @@ import { useLab } from '../store/lab';
 import { NewProjectDialog } from '../components/projects/NewProjectDialog';
 import { ProjectDrawer, STATUS_LABEL } from '../components/projects/ProjectDrawer';
 import { Empty } from '../components/ui';
+import { PageHeader, SummaryCard } from '../components/primitives';
+import { usePrimaryAction } from '../store/chrome';
 import { Icon } from '../components/Icon';
 
 const PRIORITY_RANK: Record<ProjectPriority, number> = { high: 0, medium: 1, low: 2 };
@@ -16,6 +18,11 @@ const STATUS_RANK: Record<ProjectStatus, number> = { in_progress: 0, not_started
 const PRIORITY_CHIP: Record<ProjectPriority, string> = { high: 'chip-bad', medium: '', low: '' };
 const STATUS_DOT: Record<ProjectStatus, string> = { not_started: 'bg-unknown', in_progress: 'bg-accent', complete: 'bg-ok' };
 
+function projectCaption(ps: Project[]): string {
+  const late = ps.filter(overdue).length;
+  const done = ps.reduce((n, p) => n + p.task_progress.done, 0), total = ps.reduce((n, p) => n + p.task_progress.total, 0);
+  return [late ? `${late} overdue.` : 'Nothing overdue.', total ? `${done} of ${total} checklist steps done.` : ''].filter(Boolean).join(' ');
+}
 const today = () => new Date().toISOString().slice(0, 10);
 const overdue = (p: Project) => !!p.due_date && p.status !== 'complete' && p.due_date < today();
 const linkLabel = (p: Project) => p.links.map((l) => l.device_name ?? l.service_name).filter(Boolean) as string[];
@@ -28,6 +35,7 @@ export default function ProjectsPage() {
   const [open, setOpen] = useState<string | null>(null);
   useEffect(() => { if (!loaded) void load().catch(toast.error); }, [loaded, load]);
   const projects = data ?? [];
+  usePrimaryAction('New project', useCallback(() => setCreating(true), []));
 
   const changed = (p: Project | null, id?: string) => {
     setData((xs) => {
@@ -59,19 +67,18 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="flex h-full gap-2">
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="glass no-print flex h-12 shrink-0 items-center gap-3 rounded-panel pl-4 pr-2">
-          <h1 className="text-base font-medium">Projects</h1>
-          <span className="whitespace-nowrap font-mono text-xs text-ink-2 max-sm:hidden">{projects.filter((p) => p.status !== 'complete').length} open</span>
-          <div className="segmented sm:ml-2" role="group" aria-label="Projects view">
+    <div className="flex h-full gap-4">
+      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+        <PageHeader title="Projects" description="Planned homelab work, linked to the devices and services it touches."
+          actions={<div className="segmented no-print" role="group" aria-label="Projects view">
             <button className="btn" aria-pressed={projectsView === 'board'} onClick={() => setProjectsView('board')}><Icon name="board" /> Board</button>
             <button className="btn" aria-pressed={projectsView === 'list'} onClick={() => setProjectsView('list')}><Icon name="list" /> List</button>
-          </div>
-          <div className="flex-1" />
-          <button className="btn btn-primary" onClick={() => setCreating(true)}><Icon name="plus" /><span className="max-sm:sr-only">New project</span></button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-auto">
+          </div>} />
+        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+          {data && <div className="max-lg:hidden"><SummaryCard label="Open projects" value={projects.filter((p) => p.status !== 'complete').length} of={projects.length}
+            caption={projectCaption(projects)}
+            bars={PROJECT_STATUSES.map((s) => ({ label: STATUS_LABEL[s], value: projects.filter((p) => p.status === s).length }))} /></div>}
+        <div className="min-w-0">
           {data && projects.length === 0 ? (
             <Empty title="No projects yet" action={<button className="btn btn-primary" onClick={() => setCreating(true)}><Icon name="plus" />New project</button>}>
               Plan homelab work here, such as “Add a second NIC to the R420” or “Build a CT for Jellyfin”. Link projects to devices and services, or keep them standalone.
@@ -83,6 +90,7 @@ export default function ProjectsPage() {
             : <ListView projects={projects} onOpen={setOpen} onStatus={async (p, status) => {
               try { changed(await api.patch<Project>(`/projects/${p.id}`, { status })); } catch (e) { toast.error(e); }
             }} />}
+        </div>
         </div>
       </div>
       {open && <ProjectDrawer key={open} projectId={open} onClose={() => setOpen(null)} onChanged={(p) => changed(p, open)} />}
@@ -115,14 +123,14 @@ function Board({ projects, onOpen, onMove, onQuickAdd }: {
   };
 
   return (
-    <div className={`grid min-h-full gap-2 ${completeOpen ? 'md:grid-cols-3' : 'md:grid-cols-[repeat(2,minmax(0,1fr))_minmax(180px,0.45fr)]'}`}>
+    <div className={`grid gap-4 ${completeOpen ? 'md:grid-cols-3' : 'md:grid-cols-[repeat(2,minmax(0,1fr))_minmax(180px,0.45fr)]'}`}>
       <p id="card-kbd-hint" className="sr-only">Enter opens the project. M opens the status menu. Alt plus Up or Down reorders within the column.</p>
       {PROJECT_STATUSES.map((status) => {
         const list = cols[status];
         const collapsed = status === 'complete' && !completeOpen;
         return (
           <section key={status} aria-label={`${STATUS_LABEL[status]} column`}
-            className={`glass flex min-h-[200px] flex-col rounded-panel p-2 ${drop?.status === status ? 'outline-dashed outline-1 -outline-offset-4 outline-accent' : ''}`}
+            className={`flex min-h-[200px] flex-col rounded-panel p-1 ${drop?.status === status ? 'outline-dashed outline-1 outline-offset-2 outline-accent' : ''}`}
             onDragOver={(e) => { if (drag) { e.preventDefault(); if (drop?.status !== status || list.length === 0) setDrop({ status, index: list.length }); } }}
             onDrop={(e) => { e.preventDefault(); void finishDrop(status, drop?.status === status ? drop.index : list.length); }}>
             <header className="mb-2 flex h-8 items-center gap-2 px-2">
@@ -199,7 +207,7 @@ function Card({ p, dragging, onOpen, onDragStart, onDragEnd, menuOpen, setMenu, 
         else if (e.altKey && e.key === 'ArrowUp') { e.preventDefault(); onShift(-1); }
         else if (e.altKey && e.key === 'ArrowDown') { e.preventDefault(); onShift(1); }
       }}
-      className={`kanban-card glass glass-raised glass-lite group relative cursor-pointer rounded-panel p-3 hover:border-white/20 ${dragging ? 'border-dashed !shadow-none opacity-40' : ''}`}>
+      className={`kanban-card panel group relative cursor-pointer rounded-panel p-3 hover:border-line-strong ${dragging ? 'border-dashed !shadow-none opacity-40' : ''}`}>
       <div className="flex items-start gap-2">
         <p className={`flex-1 text-sm font-medium ${p.status === 'complete' ? 'text-ink-2 line-through' : 'text-ink'}`}>{p.title}</p>
         <button className="btn btn-ghost btn-sm btn-icon -mr-1 -mt-1 opacity-0 group-hover:opacity-100 focus:opacity-100" aria-haspopup="menu" aria-expanded={menuOpen} aria-label={`Change status of ${p.title}`}
@@ -279,7 +287,7 @@ function ListView({ projects, onOpen, onStatus }: { projects: Project[]; onOpen:
 
   return (
     <div>
-      <div className="glass mb-2 flex flex-wrap items-end gap-3 rounded-panel p-3">
+      <div className="mb-3 flex flex-wrap items-end gap-3">
         <label className="min-w-[180px] flex-1"><span className="label">Search</span><input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Title, description, tag" /></label>
         <label><span className="label">Status</span><select className="input" value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus | '')}><option value="">Any</option>{PROJECT_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}</select></label>
         <label><span className="label">Priority</span><select className="input" value={priority} onChange={(e) => setPriority(e.target.value as ProjectPriority | '')}><option value="">Any</option>{PROJECT_PRIORITIES.map((s) => <option key={s}>{s}</option>)}</select></label>
@@ -287,7 +295,7 @@ function ListView({ projects, onOpen, onStatus }: { projects: Project[]; onOpen:
         <label><span className="label">Device</span><select className="input" value={device} onChange={(e) => setDevice(e.target.value)}><option value="">Any</option>{devices.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
         <label><span className="label">Tag</span><select className="input" value={tag} onChange={(e) => setTag(e.target.value)}><option value="">Any</option>{allTags.map((t) => <option key={t}>{t}</option>)}</select></label>
       </div>
-      <div className="surface-solid overflow-x-auto rounded-panel">
+      <div className="panel overflow-x-auto rounded-panel">
         <table className="table-base">
           <thead><tr><Th k="title">Title</Th><Th k="status">Status</Th><Th k="priority">Priority</Th><th>Linked to</th><Th k="due">Due</Th><th>Tags</th><Th k="updated">Updated</Th></tr></thead>
           <tbody>
@@ -301,7 +309,7 @@ function ListView({ projects, onOpen, onStatus }: { projects: Project[]; onOpen:
                   </select>
                 </td>
                 <td><span className={`chip ${PRIORITY_CHIP[p.priority]}`}>{p.priority}</span></td>
-                <td className="text-xs">{linkLabel(p).join(', ') || <span className="text-ink-3">Unlinked</span>}</td>
+                <td className="text-xs">{linkLabel(p).join(', ') || <span className="text-ink-2">Unlinked</span>}</td>
                 <td className={`font-mono text-xs ${overdue(p) ? 'text-bad' : ''}`}>{p.due_date ?? '—'}</td>
                 <td className="text-xs text-ink-2">{p.tags.map((t) => `#${t}`).join(' ')}</td>
                 <td className="font-mono text-xs text-ink-2">{new Date(p.updated_at).toLocaleDateString()}</td>

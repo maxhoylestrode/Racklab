@@ -9,8 +9,9 @@ import { serviceRoutes } from './services';
 import { credentialRoutes } from './credentials';
 import { projectRoutes } from './projects';
 import { adminRoutes } from './admin';
+import { inventoryRoutes } from './inventory';
 
 /** Every authenticated route module, in mount order. */
 export const allRoutes: RouteModule[] = [
-  vaultRoutes, rackRoutes, templateRoutes, deviceRoutes, linkRoutes, networkRoutes, serviceRoutes, credentialRoutes, projectRoutes, adminRoutes,
+  vaultRoutes, rackRoutes, templateRoutes, deviceRoutes, linkRoutes, networkRoutes, serviceRoutes, credentialRoutes, projectRoutes, adminRoutes, inventoryRoutes,
 ];

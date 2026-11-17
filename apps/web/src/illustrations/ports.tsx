@@ -17,8 +17,8 @@ function delayFor(id: string): string {
 export const Jack = memo(function Jack({ port, x, y, s, linked, offline, led = true }: {
   port: Port; x: number; y: number; s: number; linked: boolean; offline: boolean; led?: boolean;
 }) {
-  // Link-state LEDs use the accent; PoE ports glow amber. Unlinked LEDs are dark.
-  const ledColor = linked ? (port.poe ? '#f0b64c' : '#45dde0') : '#23262c';
+  // Link-state LEDs: green when linked, amber for PoE, dark when idle.
+  const ledColor = linked ? (port.poe ? '#f0b64c' : '#4ad08c') : '#23262c';
   const ledR = Math.max(1.2, s * 0.13);
   const showLed = led && ['rj45', 'sfp', 'sfp_plus', 'idrac'].includes(port.kind);
   const blink = linked && !offline;

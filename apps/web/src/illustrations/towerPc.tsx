@@ -1,6 +1,6 @@
 import type { ArtProps } from './types';
 
-/** Mid tower drawn side-on, standing on the shelf: tempered glass panel, RGB fan rings, lit accent strip. */
+/** Mid tower drawn side-on, standing on the shelf: tempered panel panel, RGB fan rings, lit accent strip. */
 export function TowerPcArt({ w, h, device }: ArtProps) {
   const off = device.status === 'offline';
   const accent = device.color_accent ?? '#7f8ea3';
@@ -12,7 +12,7 @@ export function TowerPcArt({ w, h, device }: ArtProps) {
       <rect x={caseX + caseW * 0.08} y={caseY + caseH - 2} width={caseW * 0.12} height={3} fill="#0b0c0e" />
       <rect x={caseX + caseW * 0.8} y={caseY + caseH - 2} width={caseW * 0.12} height={3} fill="#0b0c0e" />
       <rect x={caseX} y={caseY} width={caseW} height={caseH - 2} rx={4} fill="#111317" stroke="#3b3f47" />
-      {/* glass panel */}
+      {/* panel panel */}
       <rect x={caseX + caseW * 0.05} y={caseY + caseH * 0.05} width={caseW * 0.72} height={caseH * 0.86} rx={3} fill="url(#rm-glass)" stroke="#475569" strokeOpacity={0.6} />
       {/* motherboard + GPU silhouettes */}
       <rect x={caseX + caseW * 0.12} y={caseY + caseH * 0.1} width={caseW * 0.5} height={caseH * 0.5} fill="#0f172a" opacity={0.8} />

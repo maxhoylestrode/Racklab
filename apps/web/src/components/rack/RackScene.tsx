@@ -191,12 +191,12 @@ export function RackScene({ rack, devices, templates, links, overlay, onContextM
             <DeviceArt w={box.w} h={box.h} device={d} tpl={p.tpl} linkedPorts={linkedPorts} jack={jackSize(p, g)} />
             {p.where === 'rack' && <line x1={2} y1={0.5} x2={box.w - 2} y2={0.5} stroke="#ffffff" strokeOpacity={0.12} pointerEvents="none" />}
             {d.color_accent && p.tpl.category !== 'pc' && <rect x={0} y={0} width={3} height={box.h} fill={d.color_accent} pointerEvents="none" />}
-            {sel && <rect x={-1.5} y={-1.5} width={box.w + 3} height={box.h + 3} rx={3} fill="none" stroke="#45dde0" strokeWidth={1.5} pointerEvents="none" />}
+            {sel && <rect x={-1.5} y={-1.5} width={box.w + 3} height={box.h + 3} rx={3} fill="none" stroke="#f2f2ee" strokeWidth={1.5} pointerEvents="none" />}
             {badge > 0 && (
               <g transform={`translate(${box.w - 4} ${4})`} pointerEvents="all">
                 <title>{`${badge} open project${badge === 1 ? '' : 's'}`}</title>
-                <circle r={Math.max(7, g.u * 0.17)} fill="#45dde0" stroke="#0a0b0f" strokeWidth={1.5} />
-                <text y={Math.max(7, g.u * 0.17) * 0.4} textAnchor="middle" fontSize={Math.max(9, g.u * 0.2)} fontWeight={600} fill="#04201f" fontFamily="ui-monospace, monospace">{badge}</text>
+                <circle r={Math.max(7, g.u * 0.17)} fill="#f2f2ee" stroke="#111214" strokeWidth={1.5} />
+                <text y={Math.max(7, g.u * 0.17) * 0.4} textAnchor="middle" fontSize={Math.max(9, g.u * 0.2)} fontWeight={600} fill="#111214" fontFamily="ui-monospace, monospace">{badge}</text>
               </g>
             )}
             {renaming === d.id && (

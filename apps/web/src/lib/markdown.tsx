@@ -84,7 +84,7 @@ function blocks(src: string, opts: Opts): ReactNode[] {
       i++;
       while (i < lines.length && !/^```\s*$/.test(lines[i])) body.push(lines[i++]);
       i++;
-      out.push(<pre key={key++} data-lang={fence[1] || undefined}><code>{highlight(body.join('\n'))}</code></pre>);
+      out.push(<pre key={key++} tabIndex={0} data-lang={fence[1] || undefined}><code>{highlight(body.join('\n'))}</code></pre>);
       continue;
     }
     const h = /^(#{1,6})\s+(.*)$/.exec(line);

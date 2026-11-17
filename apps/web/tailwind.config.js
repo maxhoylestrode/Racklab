@@ -1,11 +1,12 @@
 /** @type {import('tailwindcss').Config} */
-// Every value here points at a token in src/styles/tokens.css. The scales are deliberately restricted:
-// type 11 (labels) / 12 / 13 / 14 / 16 / 20 / 28, weights 400-600, radii 10 / 14 / 999.
+// Every value here points at a token in src/styles/tokens.css. Scales are deliberately restricted:
+// type 10/11 (labels, meta), 12/13 (body), 14/16 (section), 24 (page title); weights 400/500 (600 for the
+// page title at most); radii 8 / 10 / 14 / 999.
 const rgb = (v) => `rgb(var(${v}) / <alpha-value>)`;
 
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
-  darkMode: 'class',
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     fontFamily: {
       sans: ['var(--font-sans)'],
@@ -13,17 +14,17 @@ export default {
     },
     fontSize: {
       '2xs': ['11px', { lineHeight: '16px', letterSpacing: '0.06em' }],
-      xs: ['12px', { lineHeight: '16px' }],
-      sm: ['13px', { lineHeight: '20px' }],
-      base: ['14px', { lineHeight: '20px' }],
-      md: ['16px', { lineHeight: '24px' }],
-      lg: ['20px', { lineHeight: '28px', letterSpacing: '-0.01em' }],
-      xl: ['28px', { lineHeight: '36px', letterSpacing: '-0.01em' }],
+      xs: ['11px', { lineHeight: '16px' }],
+      sm: ['12px', { lineHeight: '18px' }],
+      base: ['13px', { lineHeight: '20px' }],
+      md: ['14px', { lineHeight: '20px' }],
+      lg: ['16px', { lineHeight: '24px', letterSpacing: '-0.01em' }],
+      xl: ['24px', { lineHeight: '32px', letterSpacing: '-0.015em' }],
     },
     fontWeight: { normal: '400', medium: '500', semibold: '600', bold: '600' },
     borderRadius: {
       none: '0',
-      sm: 'var(--r-control)',
+      sm: 'var(--r-sm)',
       DEFAULT: 'var(--r-control)',
       md: 'var(--r-control)',
       lg: 'var(--r-control)',
@@ -38,10 +39,14 @@ export default {
         ink: { DEFAULT: 'var(--ink-1)', 2: 'var(--ink-2)', 3: 'var(--ink-3)' },
         line: { DEFAULT: 'var(--line)', strong: 'var(--line-strong)' },
         accent: { DEFAULT: rgb('--accent-rgb'), ink: 'var(--accent-ink)' },
+        tint: { DEFAULT: 'var(--tint)', ink: 'var(--tint-ink)', soft: 'var(--tint-soft)' },
         ok: rgb('--ok-rgb'),
         warn: rgb('--warn-rgb'),
         bad: rgb('--bad-rgb'),
         unknown: rgb('--unknown-rgb'),
+        canvas: 'var(--canvas)',
+        panel: { DEFAULT: 'var(--panel)', sunk: 'var(--panel-sunk)' },
+        stage: { DEFAULT: 'var(--stage)', ink: 'var(--stage-ink)', 'ink-2': 'var(--stage-ink-2)', line: 'var(--stage-line)', pill: 'var(--stage-pill)' },
         surface: {
           hover: 'var(--hover)',
           press: 'var(--press)',
@@ -54,10 +59,12 @@ export default {
       },
       letterSpacing: { tight: '-0.01em', label: '0.06em' },
       boxShadow: {
-        base: 'var(--glass-highlight), var(--shadow-base)',
-        raised: 'var(--glass-highlight), var(--shadow-raised)',
-        overlay: 'var(--glass-highlight), var(--shadow-overlay)',
-        lift: 'var(--glass-highlight), var(--shadow-lift)',
+        panel: 'var(--shadow-panel)',
+        base: 'var(--shadow-panel)',
+        raised: 'var(--shadow-pop)',
+        overlay: 'var(--shadow-pop)',
+        pop: 'var(--shadow-pop)',
+        lift: 'var(--shadow-lift)',
       },
       transitionTimingFunction: { DEFAULT: 'var(--ease-out)', out: 'var(--ease-out)' },
       transitionDuration: { DEFAULT: '140ms', fast: '140ms', base: '200ms', panel: '240ms' },

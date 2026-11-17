@@ -10,9 +10,25 @@ import { VlanDialog } from '../components/drawer/NetworkTab';
 import { ProjectDrawer, STATUS_LABEL } from '../components/projects/ProjectDrawer';
 import { StatusDot, confirmDialog } from '../components/ui';
 import { Icon } from '../components/Icon';
-import { TabPanel, Tabs } from '../components/primitives';
+import { PageHeader, SummaryCard, TabPanel, Tabs } from '../components/primitives';
 
-const SECTIONS = ['Search', 'IP plan', 'Inventory', 'Notes', 'VLANs'] as const;
+/** The page's one teal card: addresses in use, with a bar per VLAN (real data only). */
+function IpSummary() {
+  const ips = useFetch<IpAddress[]>('/ip-addresses');
+  const list = ips.data ?? [];
+  const by = new Map<string, number>();
+  for (const i of list) { const k = i.vlan_number != null ? `VLAN ${i.vlan_number}` : 'None'; by.set(k, (by.get(k) ?? 0) + 1); }
+  const conflicts = list.filter((i) => i.warnings.length).length;
+  return (
+    <div className="max-lg:hidden">
+      <SummaryCard label="IP addresses" value={list.length} caption={conflicts ? `${conflicts} with a conflict. See the IP plan.` : 'No duplicate or out-of-subnet addresses.'}
+        bars={[...by.entries()].sort().slice(0, 8).map(([label, value]) => ({ label, value }))} />
+    </div>
+  );
+}
+
+// Inventory moved to its own page (the home page).
+const SECTIONS = ['Search', 'IP plan', 'Notes', 'VLANs'] as const;
 type Section = (typeof SECTIONS)[number];
 
 /** Sort key for IP addresses: IPv4 numerically, IPv6 after. */
@@ -26,16 +42,16 @@ export default function DocsPage() {
   const { loaded, load } = useLab();
   useEffect(() => { if (!loaded) void load().catch(toast.error); }, [loaded, load]);
   return (
-    <div className="flex h-full flex-col gap-2">
-      <h1 className="sr-only">Docs</h1>
-      <div className="glass no-print shrink-0 rounded-panel px-4">
-        <Tabs tabs={SECTIONS} value={section} onChange={setSection} label="Docs sections" idPrefix="docs" className="h-12 items-end" />
-      </div>
-      <TabPanel idPrefix="docs" value={section} className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-2 py-4 md:px-6">
+    <div className="h-full overflow-y-auto">
+      <PageHeader title="Docs" description="Search everything, the IP plan, lab-wide notes and VLANs.">
+        <Tabs tabs={SECTIONS} value={section} onChange={setSection} label="Docs sections" idPrefix="docs" className="no-print border-b border-line" />
+      </PageHeader>
+      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <IpSummary />
+      <TabPanel idPrefix="docs" value={section} className="min-w-0">
+        <div>
           {section === 'Search' && <GlobalSearch />}
           {section === 'IP plan' && <IpPlan />}
-          {section === 'Inventory' && <Inventory />}
           {section === 'Notes' && (
             <div>
               <h1 className="text-lg font-medium">Global notes</h1>
@@ -46,6 +62,7 @@ export default function DocsPage() {
           {section === 'VLANs' && <Vlans />}
         </div>
       </TabPanel>
+      </div>
     </div>
   );
 }
@@ -87,9 +104,9 @@ function GlobalSearch() {
   );
   return (
     <div className="space-y-4">
-      <div className="glass glass-raised relative rounded-panel p-2">
-        <Icon name="search" size={20} className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-ink-2" />
-        <input className="input h-11 border-transparent bg-transparent pl-10 text-md focus:bg-surface-field" style={{ height: 44 }} placeholder="Search devices, IPs, services, notes and projects" value={q} onChange={(e) => setQ(e.target.value)} autoFocus aria-label="Global search" />
+      <div className="relative">
+        <Icon name="search" size={20} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-2" />
+        <input className="input pl-10 text-md" style={{ height: 44 }} placeholder="Search devices, IPs, services, notes and projects" value={q} onChange={(e) => setQ(e.target.value)} autoFocus aria-label="Global search" />
       </div>
       {!results && <p className="text-sm text-ink-2">Type at least two characters.</p>}
       {results && total === 0 && <p className="text-sm text-ink-2">Nothing matches “{q}”.</p>}
@@ -163,49 +180,6 @@ function IpPlan() {
           </table>
         </div>
       )}
-    </div>
-  );
-}
-
-function Inventory() {
-  const { devices, templates, racks } = useLab();
-  const ips = useFetch<IpAddress[]>('/ip-addresses');
-  const primary = (id: string) => ips.data?.find((i) => i.device_id === id && i.is_primary)?.address ?? ips.data?.find((i) => i.device_id === id)?.address;
-  const rows = [...devices].filter((d) => templates.find((t) => t.id === d.template_id)?.category !== 'shelf').sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-  const where = (id: string) => {
-    const d = devices.find((x) => x.id === id)!;
-    const t = templates.find((x) => x.id === d.template_id);
-    if (d.rack_unit_start) return `${racks.find((r) => r.id === d.rack_id)?.name ?? 'Rack'} U${d.rack_unit_start}${t && t.height_u > 1 ? `-${d.rack_unit_start + t.height_u - 1}` : ''}`;
-    if (d.shelf_device_id) return `${devices.find((x) => x.id === d.shelf_device_id)?.name} slot ${d.shelf_slot}`;
-    return 'Unracked';
-  };
-  return (
-    <div>
-      <div className="mb-4 flex items-end">
-        <div className="mr-auto"><h1 className="text-lg font-medium">Device inventory</h1><p className="mt-1 text-sm text-ink-2">{rows.length} devices. Shelves are left out.</p></div>
-        <button className="btn no-print" onClick={() => window.print()}><Icon name="print" /> Print</button>
-      </div>
-      <p className="mb-3 hidden text-xs print:block">RackMap inventory, printed {new Date().toLocaleString()}</p>
-      <div className="surface-solid overflow-x-auto rounded-panel print:border-0 print:shadow-none">
-        <table className="table-base">
-          <thead><tr><th>Name</th><th>Model</th><th>Location</th><th>Hostname</th><th>Primary IP</th><th>OS</th><th>Role</th><th>Status</th><th>Tags</th></tr></thead>
-          <tbody>
-            {rows.map((d) => (
-              <tr key={d.id}>
-                <td className="font-medium">{d.name}</td>
-                <td className="text-xs">{templates.find((t) => t.id === d.template_id)?.name}</td>
-                <td className="text-xs">{where(d.id)}</td>
-                <td className="font-mono text-xs">{d.hostname ?? '—'}</td>
-                <td className="font-mono text-xs">{primary(d.id) ?? '—'}</td>
-                <td className="text-xs">{d.os ?? '—'}</td>
-                <td className="text-xs">{d.role ?? '—'}</td>
-                <td className="text-xs"><span className="inline-flex items-center gap-2"><StatusDot status={d.status} />{d.status}</span></td>
-                <td className="text-xs">{d.tags.join(', ')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }

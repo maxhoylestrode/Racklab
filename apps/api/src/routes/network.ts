@@ -12,7 +12,7 @@ import { idParam, one, defined, q } from './util';
  * IP rows with computed warnings: the same address on another device, and an address
  * outside its VLAN's subnet (Postgres inet containment: address <<= subnet).
  */
-async function listIps(db: DB, deviceId?: string) {
+export async function listIps(db: DB, deviceId?: string) {
   const rows = await db
     .select({
       ip: ipAddresses,

@@ -1,15 +1,16 @@
 # RackMap
 
-A single-user, self-hosted documentation app for a homelab. The main screen is an illustrated 19" rack: place devices in rack units or on shelves, wire specific ports together, and click any device for its IPs, VMs and containers, notes and an encrypted credential vault. A topology view, a Docs area and a Projects board are generated from the same data.
+A single-user, self-hosted documentation app for a homelab. The home page is an Inventory of every device, editable in place. Beside it sits an illustrated 19" rack: place devices in rack units or on shelves, wire specific ports together, and click any device for its IPs, VMs and containers, notes and an encrypted credential vault. A topology view, a Docs area and a Projects board are generated from the same data.
 
-![Rack view](docs/screenshots/rack.png)
+![Inventory](docs/screenshots/inventory.png)
 
-| Device drawer | Topology | Projects |
-| --- | --- | --- |
-| ![Drawer](docs/screenshots/drawer.png) | ![Topology](docs/screenshots/topology.png) | ![Projects](docs/screenshots/projects.png) |
+| Rack | Device drawer | Topology | Projects |
+| --- | --- | --- | --- |
+| ![Rack](docs/screenshots/rack.png) | ![Drawer](docs/screenshots/drawer.png) | ![Topology](docs/screenshots/topology.png) | ![Projects](docs/screenshots/projects.png) |
 
 ## Features
 
+- **Inventory (home page):** one row per device, racked or loose. Sort, search, filter chips (status, role, tag, racked or unracked, open projects, IP conflicts) and grouping by rack, role or status. Edit name, status, role, OS, hostname, tags, primary IP and rack position in the cells. Multi-select with bulk status, tag, role, project link and delete. Keyboard control (arrows, Enter, Esc, E, Delete, /), undo and redo, and CSV export of the current view. Credentials appear only as a count.
 - **Rack view:** realistic cabinet with rails, U gutters and blanking panels, hand-drawn SVG illustrations, link LEDs, and drag and drop from a device library. Shelves hold loose gear, and an unracked tray holds everything else. Includes undo/redo, keyboard control, a context menu, and PNG/SVG export.
 - **Wiring:** wire mode, port-to-port cables routed through side lanes with a gentle sag, tooltips, a cable inspector, and validation (one cable per port, no self-links, a warning on speed mismatch).
 - **Device drawer:** Overview (with linked projects), Network (ports, IPs, VLANs, duplicate and subnet warnings), Services (VM/LXC/Docker tree), Markdown notes, and the Vault.
@@ -17,7 +18,7 @@ A single-user, self-hosted documentation app for a homelab. The main screen is a
 - **Topology:** a layered tree from the router outwards.
 - **Docs:** global search, IP plan, printable inventory, global notes and VLANs.
 - **Projects:** a kanban board and list view, linked to devices and services or standalone, with checklists.
-- **Operations:** JSON export and restore, nightly backups with 14-day retention, an audit log, and a dark glass theme (with a light variant).
+- **Operations:** JSON export and restore, nightly backups with 14-day retention, an audit log, and a light "desk" theme with a dark variant that follows the system setting.
 
 ## Stack
 

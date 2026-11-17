@@ -26,7 +26,7 @@ export function LinkInspector({ linkId }: { linkId: string }) {
   const a = end(link.port_a_id), b = end(link.port_b_id);
   const save = (patch: Parameters<typeof updateLink>[1]) => updateLink(link.id, patch).catch(toast.error);
   return (
-    <aside className="glass glass-overlay no-print absolute bottom-2 right-2 z-drawer w-80 max-w-[calc(100%-16px)] rounded-panel p-4" aria-label="Cable inspector">
+    <aside className="panel panel-overlay no-print absolute bottom-2 right-2 z-drawer w-80 max-w-[calc(100%-16px)] rounded-panel p-4" aria-label="Cable inspector">
       <div className="mb-4 flex items-start gap-3">
         <span className="mt-1 h-3 w-3 shrink-0 rounded-full ring-1 ring-inset ring-white/20" style={{ background: link.cable_color }} />
         <div className="min-w-0 flex-1 text-sm">

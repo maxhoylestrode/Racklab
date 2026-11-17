@@ -152,7 +152,7 @@ The first CapRover deploy had no environment variables and crash-looped (502), b
 - **`DATA_DIR`** defaults to `/data` in production and `./data` in development. Backups default to `<DATA_DIR>/backups`.
 - **Secure cookies:** `COOKIE_SECURE` now defaults to `auto`, which sets the flag when the request arrived over HTTPS (directly or through a trusted proxy's `X-Forwarded-Proto`). Plain-HTTP access on the LAN works out of the box. `true` or `false` still forces it. If a proxy in front of CapRover hides the original HTTPS scheme, set `COOKIE_SECURE=true` once HTTPS is the only way in.
 
-## Visual redesign: dark glass (after deployment)
+## Visual redesign: dark glass (after deployment; superseded by the desk redesign below)
 
 A restyle of the whole UI to a brief from the user. It is a visual-layer change only: no API, data, store or behaviour changes, and the tests are untouched.
 
@@ -171,3 +171,101 @@ A restyle of the whole UI to a brief from the user. It is a visual-layer change 
 - **Light theme** is kept (it is a user setting) and gets the same tokens with inverted ink and frosted-daylight glass. The rack stays dark hardware in both.
 - **Checks:** axe reports no contrast failures on any screen in either theme. Lighthouse accessibility is 100 on setup, rack, topology, docs, projects, settings and audit. Scrolling the rack with 60 devices and 100 cables measured 141 fps (unchanged), so no blur had to be removed. The main bundle grew from 490 KB to 521 KB, mostly Lucide icons.
 - **Known and unchanged:** axe flags `nested-interactive` on kanban cards (a card is a button that contains its status-menu button). That structure predates the restyle and Lighthouse does not score it; changing it would change keyboard behaviour.
+
+## Desk redesign and Inventory home page (replaces the dark glass look)
+
+Two briefs from the user, applied together: a light, flat "desk" restyle that matches a reference dashboard screenshot, and an addendum that makes the Inventory the home page, with real new behaviour.
+
+### Visual layer
+
+- **Tokens** (`apps/web/src/styles/tokens.css`) were rewritten for a light default:
+  - warm grey canvas (#ebebe8)
+  - off-white panels (#f7f7f5) with a hairline and at most a 1px shadow
+  - black as the primary action colour
+  - one pastel teal tint (#bfdcd6 with dark teal text), used only for each screen's summary card and for active filter chips.
+
+  The dark theme is flat graphite with the same layout: black becomes white and the tint becomes a dark teal. Glass, blur, glows, noise and the grid are gone.
+- **Theme** follows the operating system unless set manually. The top bar toggle picks light or dark; a second button (and Settings → Display) returns to following the system. The preference key changed from `rackmap.theme` to `rackmap.themePref`, so the first load after upgrading follows the system.
+- **Shell:**
+  - **Sidebar:** fixed on the left with two groups, DESK (Inventory, Rack, Topology, Projects, Docs) and CONTROLS (Settings, Audit log). At the bottom are an inverted vault card (live lock state, one-click lock or unlock) and a user chip with sign out.
+  - **Top bar:** a breadcrumb; a real "x of y online" pill (planned devices excluded); the theme toggle; and a black pill primary action that each page can set (New device, New project).
+  - **Phones:** the sidebar opens as a sheet from a menu button.
+- **Type and scale:** 13px body, 11–12px meta, 24px page titles (the only use of weight 600), and uppercase group labels at 11px. Radii are 8, 10, 14 and 999.
+- **Rack:** the one dark object.
+  - **Stage:** the scene sits on a dark recessed panel with a 14px radius. That is the standard panel radius rather than the brief's 16px, to keep to the stated radius set.
+  - **Controls:** zoom, layers and the rack/topology switch are small dark pills on the stage. The view switch hides when the drawer narrows the stage.
+  - **Selection:** a thin white outline plus the 1px lift.
+  - **Colours:** link LEDs went back to green (amber for PoE); cable colours are mixed 38% toward grey.
+- **Summary cards:** Projects shows open of total with a bar per status; Docs shows IP addresses with a bar per VLAN. Both use real data only.
+- **Vault:**
+  - **Revealed secrets:** shown in a dark inset field in both themes, with the countdown ring.
+  - **Locked rows:** dimmed icon tiles on a sunk background with lock icons; text contrast is not lowered.
+- **Docs** lost its Inventory tab. The inventory is now its own page, with Print and CSV export.
+- **Not followed literally:** the reference has a sidebar search box and a user avatar menu. RackMap has a single user and a global search already lives in Docs, so the sidebar has neither.
+
+### Inventory (new behaviour, per the addendum)
+
+- **Routes:** `/` is now Inventory, the rack moved to `/rack`, and `/inventory` redirects to `/`. An old bookmark to `/` therefore opens the inventory, which links to the rack.
+- **API:** `GET /api/inventory` returns, per device:
+  - the primary IP, with duplicate and out-of-subnet warnings
+  - whether any of the device's addresses conflicts
+  - the open project count
+  - the credential count.
+
+  Every field is listed explicitly. A test asserts that no secret value, credential label or username, and no key other than those six, appears in the payload.
+- **Edits** all go through the existing endpoints and their validation: `PATCH /devices/:id`, `POST /devices/:id/move`, `PATCH`/`POST /ip-addresses` and `POST /projects/:id/links`. There are no new write endpoints.
+- **Optimistic updates:** `updateDevice` gained an `optimistic` option. It shows the change at once and, if the API rejects it, restores the previous device and shows an error toast. Primary IP edits update the inventory extras optimistically in the same way.
+- **Undo:**
+  - **`useLab.batch(label, fn)`** collects the steps pushed inside it into one history entry, so a bulk edit undoes with one Ctrl+Z.
+  - **`useLab.record(step)`** adds IP edits and project links to the same 50-step history.
+- **Rack position:** the cell opens a small picker (rack and bottom unit, shelf and slot, or unracked). It saves through `moveDevice`, so the server's collision rules decide, and the server's message appears inside the picker and as a toast.
+- **Columns:**
+  - **Shown by default:**
+    - name, with a 28px category icon tile and a grey role and template line
+    - status, as an inline dropdown chip
+    - primary IP, in mono with an amber badge on conflict
+    - role
+    - template
+    - rack position
+    - open projects
+    - tags
+    - last updated.
+  - **Optional:** credentials (lock icon and count), hostname and OS.
+  - Column choices are kept per browser in `localStorage`.
+- **Default sort:** status (offline, unknown, planned, online), then name. IPs sort numerically with "no IP" last.
+- **Keyboard:**
+  - arrows move the active row, and an open drawer follows
+  - Enter opens the drawer
+  - Escape closes it, or clears the selection
+  - E edits the active row's name
+  - Delete removes the checked devices, or the active one, after a confirm that shows the count
+  - / focuses search.
+
+  Typing in any field disables the shortcuts.
+- **Quick add** creates an unracked device with the chosen template (default: the custom rack device) and opens its drawer. The top bar's New device button focuses it from any page.
+- **Show in rack / Show in inventory:** a button in the drawer header switches view, selects the device, switches rack if needed and scrolls the device into view. The rack's context menu also has Show in inventory.
+- **Phones (390px):**
+  - the table becomes a card list (name, status dot, IP, position)
+  - the drawer opens full screen
+  - filters scroll sideways
+  - grouping and bulk selection are desktop-only.
+- **Tests added:**
+  - **API:**
+    - inventory payload contents and the no-secrets check
+    - inline edit validation
+    - rack position collision through the move endpoint
+    - bulk status
+    - primary IP edit with duplicate warnings.
+  - **Web logic:** filter and group combinations, sorting, CSV and IP parsing.
+  - **Inventory page (jsdom and Testing Library):**
+    - inline edit success
+    - optimistic edit with rollback and toast
+    - keyboard navigation and slash to search
+    - bulk status as one undo step, with a shift-click range
+    - a collision error shown in the position picker.
+  - **Bug found:** writing the sort test showed that `localeCompare` put "no IP" ahead of addresses. IP and position sorting now use plain comparison.
+- **Checks:**
+  - axe reports no contrast failures on any screen in either theme.
+  - Lighthouse accessibility is 100 on setup, inventory, rack, topology, docs, projects, settings and audit.
+  - Rack scrolling with 60 devices and 100 cables measured 141 fps.
+- **Known and unchanged:** axe's `nested-interactive` warning on kanban cards (a card button that contains its status menu button) predates both redesigns.

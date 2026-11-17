@@ -14,7 +14,7 @@ export const placementOf = (d: Device): Placement => ({
 });
 
 /** One undoable step. Both directions go through the API. */
-interface Step { label: string; undo: () => Promise<void>; redo: () => Promise<void> }
+export interface Step { label: string; undo: () => Promise<void>; redo: () => Promise<void> }
 const HISTORY_LIMIT = 100;
 
 type Selection = { kind: 'device'; id: string } | { kind: 'link'; id: string } | null;
@@ -40,7 +40,12 @@ interface LabState {
 
   createDevice: (body: Record<string, unknown>) => Promise<Device>;
   moveDevice: (id: string, to: Placement) => Promise<void>;
-  updateDevice: (id: string, patch: Partial<Pick<Device, 'name' | 'hostname' | 'role' | 'os' | 'location_note' | 'status' | 'tags' | 'color_accent' | 'template_id'>>) => Promise<void>;
+  /** optimistic: show the change at once and roll it back if the API rejects it. */
+  updateDevice: (id: string, patch: Partial<Pick<Device, 'name' | 'hostname' | 'role' | 'os' | 'location_note' | 'status' | 'tags' | 'color_accent' | 'template_id'>>, opts?: { optimistic?: boolean }) => Promise<void>;
+  /** Runs several edits as one undo step (bulk actions). */
+  batch: (label: string, fn: () => Promise<unknown>) => Promise<void>;
+  /** Adds an externally performed edit (for example an IP change) to the undo history. */
+  record: (step: Step) => void;
   deleteDevice: (id: string) => Promise<void>;
   duplicateDevice: (id: string) => Promise<Device>;
   setStatus: (id: string, status: DeviceStatus) => Promise<void>;
@@ -59,7 +64,11 @@ export const useLab = create<LabState>((set, get) => {
     for (let i = 0; i < 20 && get().alias[cur]; i++) cur = get().alias[cur];
     return cur;
   };
-  const push = (s: Step) => set((st) => ({ past: [...st.past, s].slice(-HISTORY_LIMIT), future: [] }));
+  let collector: Step[] | null = null;
+  const push = (s: Step) => {
+    if (collector) { collector.push(s); return; }
+    set((st) => ({ past: [...st.past, s].slice(-HISTORY_LIMIT), future: [] }));
+  };
   const putDevice = (d: Device) => set((st) => ({ devices: st.devices.some((x) => x.id === d.id) ? st.devices.map((x) => (x.id === d.id ? { ...x, ...d, ports: d.ports ?? x.ports } : x)) : [...st.devices, d] }));
   const portOwner = (portId: string) => get().devices.find((d) => d.ports.some((p) => p.id === portId));
   /** Local removal mirroring the server cascade: ports and cables go, riders drop to the tray. */
@@ -143,16 +152,22 @@ export const useLab = create<LabState>((set, get) => {
       push({ label: `Move ${before.name}`, undo: () => rawMove(devId, from), redo: () => rawMove(devId, to) });
     },
 
-    async updateDevice(devId, patch) {
+    async updateDevice(devId, patch, opts = {}) {
       const before = get().devices.find((d) => d.id === devId);
       if (!before) return;
+      if (opts.optimistic) putDevice({ ...before, ...patch } as Device);
       const prev = Object.fromEntries(Object.keys(patch).map((k) => [k, (before as any)[k]]));
       const apply = async (p: Record<string, unknown>) => {
         const d = await api.patch<Device>(`/devices/${id(devId)}`, p);
         putDevice(d);
         if ('template_id' in p) set({ links: await api.get<Link[]>('/links') });
       };
-      await apply(patch);
+      try {
+        await apply(patch);
+      } catch (e) {
+        if (opts.optimistic) putDevice(before);
+        throw e;
+      }
       push({ label: `Edit ${before.name}`, undo: () => apply(prev), redo: () => apply(patch) });
     },
 
@@ -265,6 +280,26 @@ export const useLab = create<LabState>((set, get) => {
         redo: () => rawDeleteLink(cur),
       });
     },
+
+    async batch(label, fn) {
+      const outer = collector;
+      const mine: Step[] = [];
+      collector = mine;
+      try {
+        await fn();
+      } finally {
+        collector = outer;
+        if (mine.length === 1) push({ ...mine[0], label });
+        else if (mine.length) {
+          push({
+            label,
+            undo: async () => { for (const s of [...mine].reverse()) await s.undo(); },
+            redo: async () => { for (const s of mine) await s.redo(); },
+          });
+        }
+      }
+    },
+    record: (step) => push(step),
 
     async undo() {
       const s = get().past.at(-1);

@@ -8,10 +8,24 @@ import { useLab } from '../store/lab';
 import { useUi, UNIT_MIN, UNIT_MAX } from '../store/ui';
 import { StrengthMeter, confirmDialog, Modal } from '../components/ui';
 import { Icon } from '../components/Icon';
+import { PageHeader } from '../components/primitives';
+
+function ThemeSetting() {
+  const { themePref, setTheme } = useUi();
+  return (
+    <label className="block"><span className="label">Theme</span>
+      <select className="input" value={themePref} onChange={(e) => setTheme(e.target.value as typeof themePref)}>
+        <option value="system">Follow system setting</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </label>
+  );
+}
 
 function Section({ title, children, desc }: { title: string; desc?: ReactNode; children: ReactNode }) {
   return (
-    <section className="glass grid gap-4 rounded-panel p-6 md:grid-cols-[220px_1fr] md:gap-8">
+    <section className="panel grid gap-4 rounded-panel p-6 md:grid-cols-[220px_1fr] md:gap-8">
       <div>
         <h2 className="text-base font-medium text-ink">{title}</h2>
         {desc && <p className="mt-1 text-sm text-ink-2">{desc}</p>}
@@ -32,8 +46,8 @@ export default function SettingsPage() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-4xl space-y-2 px-2 py-4 md:px-6">
-        <h1 className="px-6 pb-2 text-lg font-medium">Settings</h1>
+      <div className="max-w-4xl space-y-4">
+        <PageHeader title="Settings" description="Vault, passwords, display and backups." />
 
         <Section title="Vault" desc={<>The vault encrypts passwords, TOTP seeds and private notes with a key only your vault master password (or recovery phrase) can unlock. Usernames, IPs, URLs and ordinary notes are <strong>not</strong> encrypted.</>}>
           {!status ? null : !status.configured ? <VaultSetup onDone={() => void refresh()} /> : (
@@ -62,6 +76,7 @@ export default function SettingsPage() {
                 onMouseUp={(e) => { const v = Number((e.target as HTMLInputElement).value); void save({ default_unit_height_px: v }); useUi.getState().setUnitPx(v); }}
                 onKeyUp={(e) => { const v = Number((e.target as HTMLInputElement).value); void save({ default_unit_height_px: v }); useUi.getState().setUnitPx(v); }} />
             </label>
+            <ThemeSetting />
             <label className="block"><span className="label">Motion</span>
               <select className="input" value={useUi.getState().reducedMotion} onChange={(e) => {
                 const v = e.target.value as Settings['reduced_motion'];

@@ -18,10 +18,14 @@ function save(key: string, v: unknown) {
 }
 
 export type Theme = 'dark' | 'light';
+/** The stored preference: an explicit theme, or follow the operating system. */
+export type ThemePref = Theme | 'system';
 export type ProjectsView = 'board' | 'list';
 
 interface UiState {
+  /** The theme in effect. */
   theme: Theme;
+  themePref: ThemePref;
   unitPx: number;
   wireMode: boolean;
   showCables: boolean;
@@ -30,7 +34,10 @@ interface UiState {
   projectsView: ProjectsView;
   reducedMotion: 'system' | 'reduce' | 'no-preference';
   search: string;
-  setTheme: (t: Theme) => void;
+  /** One-shot request to scroll a device into view in another view (Show in rack / Show in inventory). */
+  reveal: { view: 'rack' | 'inventory'; id: string } | null;
+  setReveal: (r: UiState['reveal']) => void;
+  setTheme: (t: ThemePref) => void;
   setUnitPx: (px: number) => void;
   setWireMode: (v: boolean) => void;
   toggle: (k: 'showCables' | 'dimUnrelated' | 'showBadges') => void;
@@ -43,7 +50,8 @@ export const UNIT_MIN = 28;
 export const UNIT_MAX = 80;
 
 export const useUi = create<UiState>((set) => ({
-  theme: load<Theme>('theme', 'dark'),
+  themePref: load<ThemePref>('themePref', 'system'),
+  theme: resolveTheme(load<ThemePref>('themePref', 'system')),
   unitPx: load('unitPx', 44),
   wireMode: false,
   showCables: load('showCables', true),
@@ -52,7 +60,9 @@ export const useUi = create<UiState>((set) => ({
   projectsView: load<ProjectsView>('projectsView', 'board'),
   reducedMotion: load('reducedMotion', 'system'),
   search: '',
-  setTheme: (theme) => { save('theme', theme); applyTheme(theme); set({ theme }); },
+  reveal: null,
+  setReveal: (reveal) => set({ reveal }),
+  setTheme: (themePref) => { save('themePref', themePref); const theme = resolveTheme(themePref); applyTheme(theme); set({ theme, themePref }); },
   setUnitPx: (px) => {
     const unitPx = Math.round(Math.min(UNIT_MAX, Math.max(UNIT_MIN, px)));
     save('unitPx', unitPx);
@@ -65,9 +75,23 @@ export const useUi = create<UiState>((set) => ({
   setSearch: (search) => set({ search }),
 }));
 
+export function systemTheme(): Theme {
+  return typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+export function resolveTheme(p: ThemePref): Theme { return p === 'system' ? systemTheme() : p; }
 export function applyTheme(t: Theme) {
   document.documentElement.classList.toggle('dark', t === 'dark');
   document.documentElement.dataset.theme = t;
+}
+/** Keeps the theme in step with the OS while the preference is 'system'. */
+export function watchSystemTheme() {
+  if (typeof matchMedia === 'undefined') return;
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (useUi.getState().themePref !== 'system') return;
+    const theme = systemTheme();
+    applyTheme(theme);
+    useUi.setState({ theme });
+  });
 }
 export function applyMotion(m: UiState['reducedMotion']) {
   if (m === 'system') delete document.documentElement.dataset.motion;

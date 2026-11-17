@@ -73,3 +73,13 @@ export interface Settings {
   id: 1; vault_auto_lock_minutes: number; default_unit_height_px: number; reduced_motion: 'system' | 'reduce' | 'no-preference';
   seed_loaded: boolean; seed_present: boolean;
 }
+
+/** Inventory extras per device (GET /api/inventory). Never carries credential fields, only a count. */
+export interface InventoryRow {
+  device_id: string;
+  primary_ip: { id: string; address: string; prefix_length: number; is_primary: boolean; vlan_number: number | null; warnings: Warning[] } | null;
+  ip_count: number;
+  ip_conflict: boolean;
+  open_projects: number;
+  credential_count: number;
+}

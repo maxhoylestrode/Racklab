@@ -1,73 +1,74 @@
 /*
- * RackMap design tokens. The single source for colour, glass, elevation, radius, spacing, type, motion and z-index.
+ * RackMap design tokens: a light, flat "desk" look (default) and a flat graphite dark theme.
  * Tailwind (tailwind.config.js) and the component classes in index.css read these variables; nothing else
- * should hard-code a colour. Dark is the primary theme; the light theme only overrides values.
+ * should hard-code a UI colour. The rack stage is the one deliberately dark object in both themes.
+ *
+ * Naming: "accent" is the primary action colour (black in light, white in dark). "tint" is the single soft
+ * pastel teal, used only for a featured summary card and the active filter chip.
  */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* ---- scene ---- */
-  --bg: #0a0b0f;
-  --glow-teal: 72 150 150;
-  --glow-indigo: 72 74 158;
-  --grid-line: rgb(255 255 255 / 0.028);
+  /* ---- surfaces ---- */
+  --canvas: #ebebe8;
+  --panel: #f7f7f5;
+  --panel-sunk: #f0f0ed;
+  --surface-raised: #ffffff;
+  --hairline: rgb(0 0 0 / 0.07);
+  --hairline-strong: rgb(0 0 0 / 0.12);
 
-  /* ---- ink (text and icons) ---- */
-  --ink-rgb: 255 255 255;
+  /* ---- ink ---- */
+  --ink-rgb: 22 22 20;
   --ink-1: rgb(var(--ink-rgb) / 0.92);
   --ink-2: rgb(var(--ink-rgb) / 0.62);
-  --ink-3: rgb(var(--ink-rgb) / 0.42);
+  --ink-3: rgb(var(--ink-rgb) / 0.40); /* icons, placeholders, disabled only: never body text */
 
-  /* ---- accent: one cool cyan-teal, for focus, selection, primary actions, active nav and link LEDs ---- */
-  --accent-rgb: 69 221 224; /* #45dde0 */
-  --accent-ink: #04201f; /* text on an accent fill */
+  /* ---- primary action (black pill) ---- */
+  --accent-rgb: 20 20 19;
+  --accent-ink: #ffffff;
 
-  /* ---- semantic status (never used as decoration) ---- */
-  --ok-rgb: 74 208 140;
-  --warn-rgb: 240 182 76;
-  --bad-rgb: 240 106 114;
-  --unknown-rgb: 140 148 161;
+  /* ---- the one tint: pastel teal ---- */
+  --tint: #bfdcd6;
+  --tint-ink: #1b4a42;
+  --tint-soft: #dcebe7;
 
-  /* ---- lines and interaction fills ---- */
-  --line: rgb(var(--ink-rgb) / 0.08);
-  --line-strong: rgb(var(--ink-rgb) / 0.14);
-  --hover: rgb(var(--ink-rgb) / 0.05);
-  --press: rgb(var(--ink-rgb) / 0.08);
-  --track: rgb(var(--ink-rgb) / 0.10);
-  --control: rgb(var(--ink-rgb) / 0.055);
-  --control-hover: rgb(var(--ink-rgb) / 0.09);
-  --field: rgb(0 0 0 / 0.28);
+  /* ---- status (dots and small chips only) ---- */
+  --ok-rgb: 22 110 62;
+  --warn-rgb: 124 78 6;
+  --bad-rgb: 186 52 46;
+  --unknown-rgb: 112 112 108;
 
-  /* ---- glass: fill (white veil), graphite tint underneath for legibility, blur ---- */
-  --glass-blur: 18px;
-  --glass-blur-lite: 8px;
-  --glass-saturate: 140%;
-  --glass-fill-base: rgb(255 255 255 / 0.04);
-  --glass-fill-raised: rgb(255 255 255 / 0.055);
-  --glass-fill-overlay: rgb(255 255 255 / 0.07);
-  --glass-fill-vault: rgb(255 255 255 / 0.10);
-  --glass-tint: rgb(13 15 20 / 0.55);
-  --glass-tint-overlay: rgb(15 17 22 / 0.78);
-  /* fallback when backdrop-filter is unsupported or transparency is reduced */
-  --glass-solid: rgb(20 22 28 / 0.97);
-  --glass-solid-overlay: rgb(24 26 33 / 0.99);
-  --glass-border: rgb(255 255 255 / 0.08);
-  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.10);
+  /* ---- interaction fills ---- */
+  --line: var(--hairline);
+  --line-strong: var(--hairline-strong);
+  --hover: rgb(0 0 0 / 0.035);
+  --press: rgb(0 0 0 / 0.06);
+  --track: rgb(0 0 0 / 0.08);
+  --control: var(--panel);
+  --control-hover: #ffffff;
+  --field: #ffffff;
 
-  /* ---- solid surfaces (reading, tables, secrets) ---- */
-  --surface-solid: rgb(14 16 20 / 0.94);
-  --surface-inset: #07080b;
-  --surface-raised: #15171d;
+  /* ---- solid surfaces ---- */
+  --surface-solid: var(--panel);
+  --surface-inset: var(--panel-sunk);
 
-  /* ---- elevation: base, raised, overlay. Higher = lighter fill and stronger shadow, never more blur ---- */
-  --shadow-base: 0 1px 2px rgb(0 0 0 / 0.30), 0 8px 24px rgb(0 0 0 / 0.22);
-  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.40), 0 12px 32px rgb(0 0 0 / 0.35);
-  --shadow-overlay: 0 2px 4px rgb(0 0 0 / 0.45), 0 24px 56px rgb(0 0 0 / 0.50);
-  --shadow-lift: 0 4px 8px rgb(0 0 0 / 0.45), 0 28px 64px rgb(0 0 0 / 0.55);
+  /* ---- the rack stage (dark in both themes) ---- */
+  --stage: #15171a;
+  --stage-ink: rgb(255 255 255 / 0.86);
+  --stage-ink-2: rgb(255 255 255 / 0.60);
+  --stage-line: rgb(255 255 255 / 0.10);
+  --stage-pill: rgb(255 255 255 / 0.08);
+  --secret-field: #16181b;
 
-  /* ---- radius: panels, controls, chips. Nothing else. ---- */
-  --r-panel: 14px;
+  /* ---- elevation: flat. Panels get a hairline; only floating layers get a soft shadow. ---- */
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.10);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.06), 0 16px 40px rgb(0 0 0 / 0.14);
+
+  /* ---- radius: 8, 10, 14, 999 only ---- */
+  --r-sm: 8px;
   --r-control: 10px;
+  --r-panel: 14px;
   --r-chip: 999px;
 
   /* ---- spacing scale (8px grid) ---- */
@@ -81,19 +82,15 @@
   /* ---- type ---- */
   --font-sans: 'Geist Variable', 'Inter Tight', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'Geist Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
-  --fs-label: 11px;
-  --fs-12: 12px;
-  --fs-13: 13px;
-  --fs-14: 14px;
-  --fs-16: 16px;
-  --fs-20: 20px;
-  --fs-28: 28px;
 
   /* ---- motion ---- */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur-fast: 140ms;
   --dur: 200ms;
   --dur-panel: 240ms;
+
+  /* ---- layout ---- */
+  --sidebar-w: 232px;
 
   /* ---- z-index ---- */
   --z-toolbar: 10;
@@ -104,43 +101,34 @@
   --z-toast: 60;
 }
 
-/* Light theme: same structure, inverted ink and frosted-daylight glass. The rack scene stays dark hardware. */
-:root[data-theme='light'] {
-  color-scheme: light;
-  --bg: #e8eaee;
-  --glow-teal: 120 190 190;
-  --glow-indigo: 140 142 210;
-  --grid-line: rgb(20 24 32 / 0.035);
-  --ink-rgb: 14 17 22;
-  --accent-rgb: 6 120 130;
-  --accent-ink: #ffffff;
-  --ok-rgb: 22 128 74;
-  --warn-rgb: 158 98 0;
-  --bad-rgb: 190 40 52;
-  --unknown-rgb: 100 108 120;
-  --line: rgb(var(--ink-rgb) / 0.10);
-  --line-strong: rgb(var(--ink-rgb) / 0.16);
-  --hover: rgb(var(--ink-rgb) / 0.05);
-  --press: rgb(var(--ink-rgb) / 0.08);
-  --track: rgb(var(--ink-rgb) / 0.10);
-  --control: rgb(255 255 255 / 0.65);
-  --control-hover: rgb(255 255 255 / 0.9);
-  --field: rgb(255 255 255 / 0.75);
-  --glass-fill-base: rgb(255 255 255 / 0.50);
-  --glass-fill-raised: rgb(255 255 255 / 0.60);
-  --glass-fill-overlay: rgb(255 255 255 / 0.72);
-  --glass-fill-vault: rgb(255 255 255 / 0.80);
-  --glass-tint: rgb(255 255 255 / 0.25);
-  --glass-tint-overlay: rgb(255 255 255 / 0.55);
-  --glass-solid: rgb(246 247 249 / 0.97);
-  --glass-solid-overlay: rgb(250 250 252 / 0.99);
-  --glass-border: rgb(20 24 32 / 0.10);
-  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.7);
-  --surface-solid: rgb(252 252 253 / 0.95);
-  --surface-inset: #f1f2f5;
-  --surface-raised: #ffffff;
-  --shadow-base: 0 1px 2px rgb(20 24 32 / 0.06), 0 8px 24px rgb(20 24 32 / 0.06);
-  --shadow-raised: 0 1px 2px rgb(20 24 32 / 0.08), 0 12px 32px rgb(20 24 32 / 0.10);
-  --shadow-overlay: 0 2px 4px rgb(20 24 32 / 0.10), 0 24px 56px rgb(20 24 32 / 0.18);
-  --shadow-lift: 0 4px 8px rgb(20 24 32 / 0.12), 0 28px 64px rgb(20 24 32 / 0.22);
+/* Dark: flat graphite surfaces, same layout. Black primary becomes white; the teal tint becomes a dark teal. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --canvas: #161717;
+  --panel: #1e1f20;
+  --panel-sunk: #191a1b;
+  --surface-raised: #26272a;
+  --hairline: rgb(255 255 255 / 0.07);
+  --hairline-strong: rgb(255 255 255 / 0.13);
+  --ink-rgb: 240 240 236;
+  --ink-2: rgb(var(--ink-rgb) / 0.64);
+  --ink-3: rgb(var(--ink-rgb) / 0.40);
+  --accent-rgb: 242 242 238;
+  --accent-ink: #141414;
+  --tint: #1f3b36;
+  --tint-ink: #b4ddd4;
+  --tint-soft: #1b2e2b;
+  --ok-rgb: 92 200 140;
+  --warn-rgb: 230 176 82;
+  --bad-rgb: 240 120 112;
+  --unknown-rgb: 150 150 146;
+  --hover: rgb(255 255 255 / 0.04);
+  --press: rgb(255 255 255 / 0.07);
+  --track: rgb(255 255 255 / 0.10);
+  --control-hover: #2a2b2e;
+  --field: #18191a;
+  --stage: #111214;
+  --shadow-panel: none;
+  --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.45);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.4), 0 16px 40px rgb(0 0 0 / 0.55);
 }

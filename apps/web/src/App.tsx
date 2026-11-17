@@ -7,6 +7,7 @@ import { Layout } from './components/Layout';
 import { ConfirmHost, Toaster, VaultPrompt } from './components/ui';
 import { RackPage } from './routes/RackPage';
 
+const InventoryPage = lazy(() => import('./routes/InventoryPage'));
 const TopologyPage = lazy(() => import('./routes/TopologyPage'));
 const DocsPage = lazy(() => import('./routes/DocsPage'));
 const ProjectsPage = lazy(() => import('./routes/ProjectsPage'));
@@ -33,7 +34,9 @@ export function App() {
       <Suspense fallback={<Loading />}>
         <Routes>
           <Route element={<Layout />}>
-            <Route index element={<RackPage />} />
+            <Route index element={<InventoryPage />} />
+            <Route path="rack" element={<RackPage />} />
+            <Route path="inventory" element={<Navigate to="/" replace />} />
             <Route path="topology" element={<TopologyPage />} />
             <Route path="docs" element={<DocsPage />} />
             <Route path="projects" element={<ProjectsPage />} />

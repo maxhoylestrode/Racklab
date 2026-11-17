@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useUi } from '../../store/ui';
 import { useLab } from '../../store/lab';
 import { Icon } from '../Icon';
 import { StatusDot } from '../ui';
@@ -20,6 +22,18 @@ export function DeviceDrawer() {
   const [tab, setTab] = useState<Tab>('Overview');
   useEffect(() => { if (!device) setTab('Overview'); }, [device]);
   const tpl = device ? templates.find((t) => t.id === device.template_id) : undefined;
+  const navigate = useNavigate();
+  const onRack = useLocation().pathname.startsWith('/rack');
+  /** Jump to the other view with this device selected and scrolled into view. */
+  const showElsewhere = () => {
+    if (!device) return;
+    if (onRack) { useUi.getState().setReveal({ view: 'inventory', id: device.id }); navigate('/'); return; }
+    const shelf = device.shelf_device_id ? devices.find((d) => d.id === device.shelf_device_id) : undefined;
+    const rackId = device.rack_id ?? shelf?.rack_id ?? null;
+    if (rackId) useLab.setState({ rackId });
+    useUi.getState().setReveal({ view: 'rack', id: device.id });
+    navigate('/rack');
+  };
 
   return (
     <AnimatePresence initial={false}>
@@ -39,6 +53,7 @@ export function DeviceDrawer() {
                 {tpl.name}{device.hostname && <> · <span className="font-mono">{device.hostname}</span></>}
               </p>
             </div>
+            <button className="btn btn-ghost btn-sm" onClick={showElsewhere}><Icon name={onRack ? 'list' : 'rack'} />{onRack ? 'Show in inventory' : 'Show in rack'}</button>
             <IconButton icon="close" label="Close details" onClick={() => select(null)} />
           </DrawerHeader>
           <Tabs tabs={TABS} value={tab} onChange={setTab} label="Device sections" idPrefix="device" className="border-b border-line px-4"

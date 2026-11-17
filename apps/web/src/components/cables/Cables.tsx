@@ -17,9 +17,10 @@ export const useWiring = create<WiringState>((set) => ({
   cancel: () => set({ pending: null }),
 }));
 
-const ACCENT = '#45dde0';
+// Highlights on the dark stage are white in both themes.
+const ACCENT = '#f2f2ee';
 
-/** Real cable jackets are less saturated than their swatch: mix 25% toward a mid grey and darken slightly. */
+/** Real cable jackets are less saturated than their swatch: mix 38% toward a mid grey and darken slightly. */
 const cableCache = new Map<string, string>();
 export function cableTone(hex: string): string {
   const hit = cableCache.get(hex);
@@ -29,7 +30,7 @@ export function cableTone(hex: string): string {
   const n = parseInt(m[1], 16);
   const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
   const grey = (ch[0] + ch[1] + ch[2]) / 3;
-  const out = '#' + ch.map((c) => Math.round((c * 0.75 + grey * 0.25) * 0.9).toString(16).padStart(2, '0')).join('');
+  const out = '#' + ch.map((c) => Math.round((c * 0.62 + grey * 0.38) * 0.88).toString(16).padStart(2, '0')).join('');
   cableCache.set(hex, out);
   return out;
 }

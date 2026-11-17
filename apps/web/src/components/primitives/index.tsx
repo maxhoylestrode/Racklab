@@ -1,5 +1,5 @@
 /**
- * UI primitives. Each one renders the token-backed recipe from index.css (glass, btn-*, input, chip, table-base),
+ * UI primitives. Each one renders the token-backed recipe from index.css (panel, btn-*, input, chip, table-base),
  * so screens compose these instead of styling ad hoc.
  */
 import { forwardRef, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type KeyboardEvent, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
@@ -17,11 +17,11 @@ export const panelTransition = { duration: 0.24, ease: PANEL_EASE };
 export type Elevation = 'base' | 'raised' | 'overlay' | 'solid' | 'vault';
 export function panelClass(elevation: Elevation = 'base') {
   switch (elevation) {
-    case 'raised': return 'glass glass-raised rounded-panel';
-    case 'overlay': return 'glass glass-overlay rounded-panel';
-    case 'vault': return 'glass glass-vault rounded-panel';
+    case 'raised': return 'panel panel-overlay rounded-panel';
+    case 'overlay': return 'panel panel-overlay rounded-panel';
+    case 'vault': return 'panel rounded-panel';
     case 'solid': return 'surface-solid rounded-panel';
-    default: return 'glass rounded-panel';
+    default: return 'panel rounded-panel';
   }
 }
 export function Panel({ elevation = 'base', className, as: As = 'div', ...rest }: HTMLAttributes<HTMLElement> & { elevation?: Elevation; as?: 'div' | 'section' | 'aside' | 'header' | 'nav' }) {
@@ -205,11 +205,11 @@ export function Dialog({ open, onClose, title, description, children, width = 'm
     <AnimatePresence>
       {open && (
         // The scrim dims without blurring, so a dialog over a drawer stays within the backdrop-layer budget.
-        <motion.div className="fixed inset-0 z-dialog flex items-center justify-center bg-black/55 p-4"
+        <motion.div className="fixed inset-0 z-dialog flex items-center justify-center bg-black/30 p-4"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: PANEL_EASE }}
           onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
           <motion.div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId}
-            className={`glass glass-overlay w-full ${width} max-h-[90vh] overflow-y-auto rounded-panel p-6`}
+            className={`panel panel-overlay w-full ${width} max-h-[90vh] overflow-y-auto rounded-panel p-6`}
             initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 12, opacity: 0 }} transition={panelTransition}>
             <h2 id={titleId} className="text-md font-medium text-ink">{title}</h2>
             {description && <p className="mt-1 text-sm text-ink-2">{description}</p>}
@@ -226,12 +226,12 @@ export function Actions({ children, className, between }: { children: ReactNode;
 }
 
 // ---------------------------------------------------------------- Drawer
-/** Right-hand glass drawer. Slides 12px and fades over 240ms. */
+/** Right-hand panel drawer. Slides 12px and fades over 240ms. */
 export function Drawer({ label, className, children, ...rest }: Omit<HTMLMotionProps<'aside'>, 'children'> & { label: string; children: ReactNode }) {
   return (
     <motion.aside
       aria-label={label}
-      className={cx('glass glass-raised flex flex-col overflow-hidden rounded-panel', className)}
+      className={cx('panel flex flex-col overflow-hidden rounded-panel', className)}
       initial={{ x: 12, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 12, opacity: 0 }} transition={panelTransition}
       {...rest}
     >
@@ -247,7 +247,7 @@ export function DrawerHeader({ children, className }: { children: ReactNode; cla
 export function SectionHeader({ title, id, action, className }: { title: ReactNode; id?: string; action?: ReactNode; className?: string }) {
   return (
     <div className={cx('mb-2 flex min-h-8 items-center justify-between gap-2', className)}>
-      <h3 id={id} className="text-sm font-medium text-ink">{title}</h3>
+      <h3 id={id} className="text-md font-medium text-ink">{title}</h3>
       {action}
     </div>
   );
@@ -261,5 +261,56 @@ export function EmptyState({ title, children, action, className }: { title: stri
       {children && <div className="mt-1 max-w-prose text-sm text-ink-2">{children}</div>}
       {action && <div className="mt-3">{action}</div>}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------- Toggle (switch)
+export function Toggle({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
+  return (
+    <button type="button" role="switch" aria-checked={checked} aria-label={label} disabled={disabled} className="switch disabled:cursor-not-allowed disabled:opacity-40"
+      onClick={() => onChange(!checked)} />
+  );
+}
+
+// ---------------------------------------------------------------- Page header: 24px title, one grey line, optional actions
+export function PageHeader({ title, description, actions, children }: { title: string; description?: ReactNode; actions?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="mb-6">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-semibold text-ink">{title}</h1>
+          {description && <p className="mt-1 text-sm text-ink-2">{description}</p>}
+        </div>
+        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      </div>
+      {children && <div className="mt-4">{children}</div>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Summary card (the one teal card per screen) with real-data bars
+export function SummaryCard({ label, value, of, caption, bars }: {
+  label: string; value: number; of?: number; caption: ReactNode; bars: { label: string; value: number }[];
+}) {
+  const max = Math.max(1, ...bars.map((b) => b.value));
+  return (
+    <section className="tint-card flex flex-col rounded-panel p-4" aria-label={label}>
+      <h2 className="text-sm font-medium">{label}</h2>
+      <p className="mt-3 flex items-baseline gap-1">
+        <span className="text-[32px] font-medium leading-none tracking-tight">{value}</span>
+        {of !== undefined && <span className="text-md">/{of}</span>}
+      </p>
+      <p className="mt-2 text-xs">{caption}</p>
+      <div className="mt-4 flex h-12 items-end gap-1" role="list" aria-label={`${label} breakdown`}>
+        {bars.map((b) => (
+          <div key={b.label} role="listitem" aria-label={`${b.label}: ${b.value}`} className="flex flex-1 flex-col items-center gap-1" title={`${b.label}: ${b.value}`}>
+            <div className="w-full rounded-sm bg-current" style={{ height: `${Math.max(4, (b.value / max) * 40)}px`, opacity: b.value ? 0.9 : 0.25 }} />
+          </div>
+        ))}
+      </div>
+      <div className="mt-1 flex gap-1">
+        {bars.map((b) => <span key={b.label} className="flex-1 truncate text-center text-[10px] leading-4">{b.label}</span>)}
+      </div>
+    </section>
   );
 }

@@ -21,7 +21,7 @@ export function RouterArt({ w, h, device }: ArtProps) {
       {/* status LEDs */}
       {[0, 1, 2, 3, 4].map((i) => (
         <circle key={i} cx={body.x + body.w * 0.08 + i * body.w * 0.05} cy={body.y + body.h * 0.4} r={Math.max(1, h * 0.022)}
-          fill={off ? '#94a3b8' : i === 1 || i === 2 ? '#45dde0' : '#4ad08c'} />
+          fill={off ? '#94a3b8' : i === 1 || i === 2 ? '#7cd9a6' : '#4ad08c'} />
       ))}
       <text x={body.x + body.w * 0.5} y={body.y + body.h * 0.45} textAnchor="middle" fontSize={Math.max(5, h * 0.09)} fill="#334155" fontFamily="ui-sans-serif, system-ui" fontWeight={600}>
         {device.name.replace(/\s*\(.*\)$/, '')}

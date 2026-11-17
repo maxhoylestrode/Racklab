@@ -42,7 +42,7 @@ export function ProjectDrawer({ projectId, onClose, onChanged, overlay }: { proj
 
   const panel = (
     <motion.aside
-      className={`glass glass-raised flex w-[420px] max-w-[calc(100vw-16px)] flex-col overflow-hidden rounded-panel ${overlay ? 'fixed bottom-2 right-2 top-2 z-popover !shadow-lift' : 'h-full shrink-0 max-md:absolute max-md:inset-0 max-md:z-drawer max-md:w-auto'}`}
+      className={`panel flex w-[420px] max-w-[calc(100vw-16px)] flex-col overflow-hidden rounded-panel ${overlay ? 'fixed bottom-2 right-2 top-2 z-popover !shadow-lift' : 'h-full shrink-0 max-md:absolute max-md:inset-0 max-md:z-drawer max-md:w-auto'}`}
       initial={{ x: 12, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={panelTransition} aria-label="Project details"
     >
       {!p ? <div className="p-4 text-sm text-ink-2">Loading…</div> : (

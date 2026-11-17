@@ -8,9 +8,9 @@ import { Logo } from '../components/Logo';
 function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="glass glass-overlay w-full max-w-sm rounded-panel p-8">
-        <Logo size={32} />
-        <h1 className="mt-6 text-lg font-medium text-ink">{title}</h1>
+      <div className="panel w-full max-w-sm rounded-panel p-8">
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-control bg-[#141414]"><Logo size={24} /></span>
+        <h1 className="mt-6 text-xl font-semibold text-ink">{title}</h1>
         <p className="mb-6 mt-1 text-sm text-ink-2">{subtitle}</p>
         {children}
       </div>

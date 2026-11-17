@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DEVICE_STATUSES, type DeviceStatus, type Rack } from '@rackmap/shared';
 import { useLab, placementOf } from '../store/lab';
-import { useUi, UNIT_MIN, UNIT_MAX } from '../store/ui';
+import { useUi, UNIT_MIN, UNIT_MAX, prefersReducedMotion } from '../store/ui';
 import { toast } from '../store/toast';
 import { api } from '../lib/api';
 import { RackScene } from '../components/rack/RackScene';
@@ -10,7 +10,7 @@ import { Library } from '../components/rack/Library';
 import { DeviceDrawer } from '../components/drawer/DeviceDrawer';
 import { Cables, useWiring } from '../components/cables/Cables';
 import { LinkInspector } from '../components/cables/LinkInspector';
-import { confirmDialog, Empty, Modal } from '../components/ui';
+import { confirmDialog, Modal } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { IconButton, SearchInput, Tooltip, Actions } from '../components/primitives';
 
@@ -30,6 +30,14 @@ export function RackPage() {
   const wiring = useWiring();
 
   useEffect(() => { void load().catch(toast.error); }, [load]);
+  // Show in rack: scroll the requested device into view once it is drawn.
+  const reveal = useUi((s) => s.reveal);
+  useEffect(() => {
+    if (!reveal || reveal.view !== 'rack' || !loaded) return;
+    useUi.getState().setReveal(null);
+    select({ kind: 'device', id: reveal.id });
+    requestAnimationFrame(() => requestAnimationFrame(() => svgRef.current?.querySelector(`[data-device-id="${reveal.id}"]`)?.scrollIntoView({ block: 'center', inline: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' })));
+  }, [reveal, loaded, select]);
 
   const rack = racks.find((r) => r.id === rackId);
   const selectedDevice = selection?.kind === 'device' ? devices.find((d) => d.id === selection.id) : undefined;
@@ -129,12 +137,12 @@ export function RackPage() {
   if (!loaded) return <div className="p-6 text-sm text-ink-2">Loading lab…</div>;
 
   return (
-    <div className="relative flex h-full flex-col gap-2 md:flex-row">
+    <div className="relative flex h-full flex-col gap-4 md:flex-row">
       <h1 className="sr-only">Rack: {rack?.name ?? 'no rack'}</h1>
       <Library />
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-        {/* toolbar */}
-        <div className="rack-toolbar glass no-print flex h-12 shrink-0 items-center gap-2 overflow-x-auto rounded-panel px-2" role="toolbar" aria-label="Rack tools">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
+        {/* toolbar on the light canvas */}
+        <div className="rack-toolbar no-print flex h-10 shrink-0 items-center gap-2 overflow-x-auto" role="toolbar" aria-label="Rack tools">
           <label className="sr-only" htmlFor="rack-select">Rack</label>
           <select id="rack-select" className="input w-auto max-w-[200px] shrink-0" value={rackId ?? ''} onChange={(e) => lab.setRack(e.target.value)}>
             {racks.map((r) => <option key={r.id} value={r.id}>{r.name} ({r.total_units}U)</option>)}
@@ -142,64 +150,72 @@ export function RackPage() {
           </select>
           <IconButton icon="plus" label="New rack" variant="secondary" size="md" onClick={() => setNewRack(true)} />
           <Divider />
-          <div className="flex shrink-0 items-center gap-1" role="group" aria-label="Zoom">
-            <IconButton icon="minus" label="Zoom out" onClick={() => ui.setUnitPx(ui.unitPx - 6)} />
-            <input type="range" min={UNIT_MIN} max={UNIT_MAX} value={ui.unitPx} onChange={(e) => ui.setUnitPx(Number(e.target.value))} aria-label="Unit height" className="tb-optional w-16" />
-            <IconButton icon="plus" label="Zoom in" onClick={() => ui.setUnitPx(ui.unitPx + 6)} />
-          </div>
-          <Divider />
           <Tooltip content="Click a port, then another port">
-            <button className={`btn btn-sm shrink-0 ${ui.wireMode ? 'btn-on' : ''}`} aria-pressed={ui.wireMode} onClick={() => { ui.setWireMode(!ui.wireMode); wiring.cancel(); }}>
+            <button className={`btn btn-sm shrink-0 ${ui.wireMode ? 'btn-primary' : ''}`} aria-pressed={ui.wireMode} onClick={() => { ui.setWireMode(!ui.wireMode); wiring.cancel(); }}>
               <Icon name="cable" /> Wire
             </button>
           </Tooltip>
-          <div className="segmented shrink-0" role="group" aria-label="Layers">
-            <Tooltip content="Show cables"><button className="btn" aria-pressed={ui.showCables} aria-label="Show cables" onClick={() => ui.toggle('showCables')}><Icon name="cables" /></button></Tooltip>
-            <Tooltip content="Dim unrelated devices"><button className="btn" aria-pressed={ui.dimUnrelated} aria-label="Dim unrelated" onClick={() => ui.toggle('dimUnrelated')}><Icon name="dim" /></button></Tooltip>
-            <Tooltip content="Project badges"><button className="btn" aria-pressed={ui.showBadges} aria-label="Project badges" onClick={() => ui.toggle('showBadges')}><Icon name="badge" /></button></Tooltip>
-          </div>
-          <div className="segmented hidden shrink-0 2xl:inline-flex" role="group" aria-label="View">
-            <button className="btn" aria-pressed="true">Rack</button>
-            <button className="btn" aria-pressed="false" onClick={() => navigate('/topology')}>Topology</button>
-          </div>
           <div className="min-w-2 flex-1" />
           <IconButton icon="undo" label="Undo" tooltip={lab.past.at(-1) ? `Undo: ${lab.past.at(-1)!.label}` : 'Undo'} disabled={!lab.past.length} onClick={() => lab.undo().catch(toast.error)} />
           <IconButton icon="redo" label="Redo" tooltip={lab.future.at(-1) ? `Redo: ${lab.future.at(-1)!.label}` : 'Redo'} disabled={!lab.future.length} onClick={() => lab.redo().catch(toast.error)} />
           <ExportMenu svgRef={svgRef} name={rack?.name ?? 'rack'} />
-          <SearchInput wrapperClassName="shrink-0" className="w-36 transition-[width] duration-base focus:w-52" placeholder="Search devices" value={ui.search} onChange={(e) => ui.setSearch(e.target.value)} aria-label="Search devices" />
+          <SearchInput wrapperClassName="shrink-0" className="w-44 transition-[width] duration-base focus:w-56" placeholder="Search devices" value={ui.search} onChange={(e) => ui.setSearch(e.target.value)} aria-label="Search devices" />
         </div>
-        <div className="relative min-h-0 flex-1">
-        {ui.wireMode && (
-          <div className="glass glass-overlay no-print pointer-events-none absolute left-1/2 top-3 z-overlay-ui flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full py-1 pl-2 pr-3 text-xs text-ink" role="status">
-            <span className="h-2 w-2 rounded-full bg-accent" aria-hidden />
-            {wiring.pending ? 'Now click the port at the other end. Esc cancels.' : 'Wire mode: click a port to start a cable. Esc exits.'}
+        {/* the dark recessed stage */}
+        <div className="stage relative min-h-0 flex-1 overflow-hidden rounded-panel">
+          <div className="no-print pointer-events-none absolute inset-x-3 top-3 z-overlay-ui flex items-start justify-between gap-2">
+            <div className="pointer-events-auto flex gap-2">
+              <div className="stage-pill" role="group" aria-label="Zoom">
+                <button aria-label="Zoom out" onClick={() => ui.setUnitPx(ui.unitPx - 6)}><Icon name="minus" /></button>
+                <input type="range" min={UNIT_MIN} max={UNIT_MAX} value={ui.unitPx} onChange={(e) => ui.setUnitPx(Number(e.target.value))} aria-label="Unit height" className="tb-optional mx-1 w-20 [accent-color:#f2f2ee]" />
+                <button aria-label="Zoom in" onClick={() => ui.setUnitPx(ui.unitPx + 6)}><Icon name="plus" /></button>
+              </div>
+              <div className="stage-pill stage-layers" role="group" aria-label="Layers">
+                <button aria-pressed={ui.showCables} onClick={() => ui.toggle('showCables')}>Cables</button>
+                <button aria-pressed={ui.dimUnrelated} onClick={() => ui.toggle('dimUnrelated')}>Dim unrelated</button>
+                <button aria-pressed={ui.showBadges} onClick={() => ui.toggle('showBadges')}>Badges</button>
+              </div>
+            </div>
+            <div className="stage-pill stage-optional pointer-events-auto" role="group" aria-label="View">
+              <button aria-pressed="true">Rack</button>
+              <button aria-pressed="false" onClick={() => navigate('/topology')}>Topology</button>
+            </div>
           </div>
-        )}
-        <div className="h-full overflow-auto" onClick={() => setMenu(null)}>
-          {!rack ? (
-            <div className="p-8"><Empty title="No rack yet" action={<button className="btn btn-primary" onClick={() => setNewRack(true)}><Icon name="plus" />Create a rack</button>}>Create a rack, then drag devices onto it from the library.</Empty></div>
-          ) : (
-            <div className="flex min-w-max justify-center px-6 pb-8 pt-4">
-              <RackScene
-                rack={rack}
-                devices={devices}
-                templates={templates}
-                links={links}
-                svgRef={svgRef}
-                dimmed={dimmed}
-                renaming={renaming}
-                setRenaming={setRenaming}
-                onContextMenu={(id, x, y) => setMenu({ id, x, y })}
-                overlay={(sceneApi) => <Cables scene={sceneApi} dimmed={dimmed} />}
-              />
+          {ui.wireMode && (
+            <div className="no-print pointer-events-none absolute bottom-3 left-1/2 z-overlay-ui flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-[#111]" role="status">
+              <span className="h-2 w-2 rounded-full bg-[#2f9e5f]" aria-hidden />
+              {wiring.pending ? 'Now click the port at the other end. Esc cancels.' : 'Wire mode: click a port to start a cable. Esc exits.'}
             </div>
           )}
-          {rack && devices.length === 0 && (
-            <div className="glass glass-overlay pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-panel px-4 py-2 text-sm text-ink">
-              Empty rack. Drag a switch or server from the library to get started.
-            </div>
-          )}
-        </div>
+          <div className="h-full overflow-auto" onClick={() => setMenu(null)}>
+            {!rack ? (
+              <div className="p-6 pt-16 text-stage-ink-2">
+                <p className="text-md font-medium text-stage-ink">No rack yet</p>
+                <p className="mt-1 text-sm">Create a rack, then drag devices onto it from the library.</p>
+                <button className="mt-3 inline-flex h-8 items-center gap-2 rounded-full bg-white px-4 text-sm font-medium text-[#111]" onClick={() => setNewRack(true)}><Icon name="plus" />Create a rack</button>
+              </div>
+            ) : (
+              <div className="flex min-w-max justify-center px-6 pb-8 pt-14">
+                <RackScene
+                  rack={rack}
+                  devices={devices}
+                  templates={templates}
+                  links={links}
+                  svgRef={svgRef}
+                  dimmed={dimmed}
+                  renaming={renaming}
+                  setRenaming={setRenaming}
+                  onContextMenu={(id, x, y) => setMenu({ id, x, y })}
+                  overlay={(sceneApi) => <Cables scene={sceneApi} dimmed={dimmed} />}
+                />
+              </div>
+            )}
+            {rack && devices.length === 0 && (
+              <p className="pointer-events-none absolute left-1/2 top-14 -translate-x-1/2 rounded-full bg-white/90 px-4 py-1 text-sm text-[#111]">
+                Empty rack. Drag a switch or server from the library.
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -212,7 +228,8 @@ export function RackPage() {
           y={menu.y}
           onClose={() => setMenu(null)}
           items={[
-            { label: 'Rename', run: () => setRenaming(menu.id) },
+            { label: 'Show in inventory', run: () => { useUi.getState().setReveal({ view: 'inventory', id: menu.id }); select({ kind: 'device', id: menu.id }); navigate('/'); } },
+            { label: 'Rename', run: () => setRenaming(menu.id), sep: true },
             { label: 'Duplicate', run: async () => { const d = await lab.duplicateDevice(menu.id); select({ kind: 'device', id: d.id }); } },
             { label: 'Change template…', run: () => setChangeTpl(menu.id) },
             ...DEVICE_STATUSES.map((s, i) => ({ label: `Set status: ${s}`, sep: i === 0, run: () => lab.setStatus(menu.id, s as DeviceStatus) })),

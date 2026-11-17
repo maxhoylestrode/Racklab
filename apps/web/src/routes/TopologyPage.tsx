@@ -8,8 +8,8 @@ import { buildTopology } from '../lib/topology';
 import { RackDefs } from '../illustrations/defs';
 import { DeviceArt } from '../illustrations';
 import { DeviceDrawer } from '../components/drawer/DeviceDrawer';
-import { cableTone } from '../components/cables/Cables';
 import { Empty, StatusDot } from '../components/ui';
+import { PageHeader } from '../components/primitives';
 
 const CARD_W = 216, CARD_H = 76, COL_GAP = 120, ROW_GAP = 24, PAD = 32;
 
@@ -58,10 +58,10 @@ export default function TopologyPage() {
       <button type="button" style={{ left: x, top: y, width: CARD_W, height: CARD_H }}
         aria-pressed={sel}
         onClick={() => select({ kind: 'device', id })}
-        className={`glass glass-raised glass-lite absolute flex items-center gap-3 rounded-panel px-3 text-left transition-[border-color,box-shadow,transform] duration-base hover:-translate-y-px hover:border-white/20 ${sel ? '!border-accent/80 !shadow-lift' : ''}`}>
-        <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded-control bg-surface-inset" aria-hidden>
+        className={`panel absolute flex items-center gap-3 rounded-panel px-3 text-left transition-[border-color,box-shadow,transform] duration-base hover:-translate-y-px hover:border-line-strong ${sel ? '!border-accent !shadow-pop' : ''}`}>
+        <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded-sm bg-[#16181b]" aria-hidden>
           <svg width={artW} height={artH} viewBox={`0 0 ${natW} ${natH}`}>
-            <DeviceArt w={natW} h={natH} device={d} tpl={t} linkedPorts={new Set()} jack={12} showPorts={false} />
+            <DeviceArt w={natW} h={natH} device={{ ...d, name: '' }} tpl={t} linkedPorts={new Set()} jack={12} showPorts={false} />
           </svg>
         </span>
         <span className="min-w-0 flex-1">
@@ -78,18 +78,15 @@ export default function TopologyPage() {
 
   return (
     <div className="flex h-full gap-2">
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <h1 className="sr-only">Topology</h1>
-        <div className="glass no-print flex h-12 shrink-0 items-center gap-3 rounded-panel px-2">
-          <div className="segmented" role="group" aria-label="View">
-            <button className="btn" aria-pressed="false" onClick={() => navigate('/')}>Rack</button>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <PageHeader title="Topology" description="Generated from your cables. Columns are hops from the router; dashed lines are extra paths."
+          actions={<div className="segmented no-print" role="group" aria-label="View">
+            <button className="btn" aria-pressed="false" onClick={() => navigate('/rack')}>Rack</button>
             <button className="btn" aria-pressed="true">Topology</button>
-          </div>
-          <p className="truncate text-sm text-ink-2">Generated from your cables. Columns are hops from the router.</p>
-        </div>
+          </div>} />
         <div className="min-h-0 flex-1 overflow-auto">
           {!topo.root ? (
-            <div className="p-2"><Empty title="No connections yet">Wire devices together in the rack view (Wire, then click two ports) and the topology appears here.</Empty></div>
+            <Empty title="No cables yet">In the rack, turn on Wire and click two ports. The topology draws itself from those cables.</Empty>
           ) : (
             <div className="relative" style={{ width, height }} role="group" aria-label="Network topology">
               <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="rm-scene absolute inset-0" aria-hidden>
@@ -109,22 +106,22 @@ export default function TopologyPage() {
                     : bez(t, [x1, y1], [x1 + COL_GAP / 2, y1], [x2 - COL_GAP / 2, y2], [x2, y2]);
                   // The far-end label hugs the target card, where the curve runs flat; the near-end label rides the curve.
                   const pa = at(0.36);
-                  const pb = sameCol ? at(0.84) : { x: x2 - 10 - e.toPort.length * 3.6, y: y2 };
+                  const pb = sameCol ? at(0.84) : { x: x2 - 8 - e.toPort.length * 3.3, y: y2 };
                   const fade = selectedId && !hl;
                   return (
                     <g key={e.link.id} opacity={fade ? 0.3 : 1}>
-                      <path d={d} fill="none" stroke={hl ? '#45dde0' : cableTone(e.link.cable_color)} strokeWidth={1.5} strokeLinecap="round" strokeOpacity={0.9} strokeDasharray={e.tree ? undefined : '4 4'} />
+                      <path d={d} fill="none" style={{ stroke: hl ? 'rgb(var(--accent-rgb))' : 'var(--ink-2)' }} strokeWidth={1.5} strokeLinecap="round" strokeDasharray={e.tree ? undefined : '4 4'} />
                       {[{ p: pa, t: e.fromPort }, { p: pb, t: e.toPort }].map(({ p, t }, i) => (
                         <g key={i} transform={`translate(${p.x} ${p.y})`}>
-                          <rect x={-t.length * 3.6 - 6} y={-9} width={t.length * 7.2 + 12} height={18} rx={9} fill="#0d0f13" stroke="#ffffff" strokeOpacity={0.1} />
-                          <text y={4} textAnchor="middle" fontSize={11} fill="#b4bac3" fontFamily="ui-monospace, monospace">{t}</text>
+                          <rect x={-t.length * 3.3 - 5} y={-8} width={t.length * 6.6 + 10} height={16} rx={8} style={{ fill: 'var(--panel)', stroke: 'var(--line-strong)' }} />
+                          <text y={3.5} textAnchor="middle" fontSize={10} style={{ fill: 'var(--ink-2)' }} fontFamily="ui-monospace, monospace">{t}</text>
                         </g>
                       ))}
                     </g>
                   );
                 })}
                 {topo.unconnected.length > 0 && (
-                  <text x={PAD} y={unconnectedTop} fontSize={11} letterSpacing="0.06em" fill="#a0a6af" fontFamily="ui-sans-serif, system-ui" fontWeight={500}>NOT CONNECTED</text>
+                  <text x={PAD} y={unconnectedTop} fontSize={11} letterSpacing="0.06em" style={{ fill: 'var(--ink-2)' }} fontFamily="ui-sans-serif, system-ui" fontWeight={500}>NOT CONNECTED</text>
                 )}
               </svg>
               {[...pos.m.entries()].map(([id, p]) => <Card key={id} id={id} x={p.x} y={p.y} />)}

@@ -3,7 +3,7 @@ import {
   BadgeCheck, Cable, Check, ChevronDown, ChevronRight, ChevronUp, Columns3, Contrast, Copy, Download, Ellipsis, ExternalLink,
   Eye, EyeOff, FileText, GripVertical, History, ImageDown, KeyRound, Link2, List, Lock, LockOpen, LogOut, Menu, Minus, Moon,
   Network, Pencil, Pin, Plus, Spline, Printer, Redo2, RotateCw, Search, Server, Settings, SquareKanban, Star, Sun, Trash2,
-  TriangleAlert, Undo2, Upload, X,
+  TriangleAlert, Undo2, Upload, X, Router, Cpu, Laptop, Monitor, Rows3, HardDrive, BatteryCharging, Wifi, EthernetPort, Box,
 } from 'lucide-react';
 
 /** Name -> Lucide icon. One stroke width (1.5) and two sizes (16, 20) across the app. */
@@ -54,9 +54,25 @@ const ICONS = {
   settings: Settings,
   logout: LogOut,
   history: History,
+  router: Router,
+  sbc: Cpu,
+  laptop: Laptop,
+  pc: Monitor,
+  shelf: Rows3,
+  nas: HardDrive,
+  ups: BatteryCharging,
+  ap: Wifi,
+  switch: EthernetPort,
+  device: Box,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;
+
+/** Icon for a device template category (inventory rows, cards). */
+export function categoryIcon(c: string | undefined): IconName {
+  const m: Record<string, IconName> = { server: 'rack', switch: 'switch', router: 'router', sbc: 'sbc', laptop: 'laptop', pc: 'pc', shelf: 'shelf', nas: 'nas', ups: 'ups', ap: 'ap', patch_panel: 'cable' };
+  return (c && m[c]) || 'device';
+}
 
 /** Sizes snap to the 16 / 20 grid: anything under 18 renders at 16. */
 export function Icon({ name, size = 16, className = '', title }: { name: IconName; size?: number; className?: string; title?: string }) {

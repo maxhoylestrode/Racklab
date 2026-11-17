@@ -23,7 +23,7 @@ export function Library() {
   const filtered = useMemo(() => templates.filter((t) => t.name.toLowerCase().includes(q.toLowerCase())), [templates, q]);
 
   return (
-    <aside className="glass no-print flex shrink-0 flex-col overflow-hidden rounded-panel max-md:order-last max-md:h-44 md:w-64" aria-label="Device library">
+    <aside className="panel no-print flex shrink-0 flex-col overflow-hidden rounded-panel max-md:order-last max-md:h-44 md:w-64" aria-label="Device library">
       <div className="flex items-center gap-2 border-b border-line p-3 max-md:py-2">
         <h2 className="eyebrow mr-auto shrink-0">Library</h2>
         <SearchInput wrapperClassName="min-w-0 flex-1 md:max-w-[148px]" className="h-7 text-xs" placeholder="Filter" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Filter templates" />
@@ -50,7 +50,7 @@ export function Library() {
                       className="group cursor-grab rounded-control p-2 transition-colors duration-fast hover:bg-surface-hover active:cursor-grabbing"
                       title={`${t.name}: ${t.form_factor === 'rack' ? `${t.height_u}U rack-mount` : 'loose, shelf or tray'}`}
                     >
-                      <div className="flex h-12 items-center justify-center rounded-control bg-surface-inset px-2 shadow-[inset_0_1px_2px_rgb(0_0_0/0.4)]">
+                      <div className="flex h-12 items-center justify-center rounded-sm bg-[#16181b] px-2 shadow-[inset_0_1px_3px_rgb(0_0_0/0.5)]">
                         <DeviceThumb device={previewDevice(t)} tpl={t} width={t.form_factor === 'loose' ? 72 : 196} />
                       </div>
                       <div className="mt-2 flex h-5 items-center gap-2">
