@@ -9,12 +9,13 @@ import { toast } from '../store/toast';
 import { Logo } from './Logo';
 import { Icon, type IconName } from './Icon';
 import { Tooltip } from './primitives';
+import { isShelf } from '../lib/inventory';
 
 interface NavItem { to: string; label: string; icon: IconName; end?: boolean; count?: (s: ReturnType<typeof useLab.getState>) => number | null }
 
 /** Sidebar order (DESK, then CONTROLS). Inventory is home. */
 export const DESK: NavItem[] = [
-  { to: '/', label: 'Inventory', icon: 'list', end: true, count: (s) => (s.loaded ? s.devices.length : null) },
+  { to: '/', label: 'Inventory', icon: 'list', end: true, count: (s) => (s.loaded ? s.devices.filter((d) => !isShelf(d, s.templates)).length : null) },
   { to: '/rack', label: 'Rack', icon: 'rack' },
   { to: '/topology', label: 'Topology', icon: 'topology' },
   { to: '/projects', label: 'Projects', icon: 'projects' },
@@ -120,9 +121,10 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
 /** "7 of 8 online" from real device statuses (planned devices are not expected online). */
 function StatusPill() {
-  const { devices, loaded } = useLab();
+  const { devices, templates, loaded } = useLab();
   if (!loaded || !devices.length) return null;
-  const live = devices.filter((d) => d.status !== 'planned');
+  // Shelves are furniture: they are neither online nor offline.
+  const live = devices.filter((d) => d.status !== 'planned' && !isShelf(d, templates));
   const online = live.filter((d) => d.status === 'online').length;
   const all = online === live.length;
   return (

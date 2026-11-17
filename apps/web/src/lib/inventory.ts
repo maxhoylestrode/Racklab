@@ -16,12 +16,15 @@ export interface InvRow {
 
 export const STATUS_ORDER: Record<DeviceStatus, number> = { offline: 0, unknown: 1, planned: 2, online: 3 };
 
+/** Shelves are rack furniture, not devices you manage: the inventory leaves them out (their riders still show "Shelf 2 slot 1"). */
+export const isShelf = (d: Device, templates: DeviceTemplate[]) => templates.find((t) => t.id === d.template_id)?.category === 'shelf';
+
 export function buildRows(devices: Device[], templates: DeviceTemplate[], racks: Rack[], extras: InventoryRow[] | null | undefined): InvRow[] {
   const tpl = new Map(templates.map((t) => [t.id, t]));
   const rack = new Map(racks.map((r) => [r.id, r]));
   const dev = new Map(devices.map((d) => [d.id, d]));
   const ex = new Map((extras ?? []).map((e) => [e.device_id, e]));
-  return devices.map((d) => {
+  return devices.filter((d) => tpl.get(d.template_id)?.category !== 'shelf').map((d) => {
     const t = tpl.get(d.template_id);
     let position = 'Unracked', positionKey = '~', rackName = 'Unracked', racked = false;
     if (d.rack_id && d.rack_unit_start) {

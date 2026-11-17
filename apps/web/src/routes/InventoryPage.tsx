@@ -185,13 +185,13 @@ export default function InventoryPage() {
   };
 
   const nFilters = activeFilterCount(filters);
-  const online = devices.filter((d) => d.status === 'online').length;
+  const online = all.filter((r) => r.device.status === 'online').length;
 
   return (
     <div className="flex h-full gap-4">
       <div className="flex min-w-0 flex-1 flex-col">
         <PageHeader title="Inventory"
-          description={`${devices.length} device${devices.length === 1 ? '' : 's'}, racked and loose. ${online} online. Click a row for details, or edit cells in place.`}
+          description={`${all.length} device${all.length === 1 ? '' : 's'}, racked and loose. ${online} online. Click a row for details, or edit cells in place.`}
           actions={<>
             <button className="btn btn-ghost btn-sm" onClick={exportCsv} disabled={!rows.length}><Icon name="download" />Export CSV</button>
             <button className="btn btn-ghost btn-sm max-md:hidden" onClick={() => window.print()}><Icon name="print" />Print</button>
@@ -488,7 +488,8 @@ function QuickAdd({ onCreated }: { onCreated: (d: Device) => void }) {
       <input ref={ref} className="input h-7 min-w-[160px] flex-1 border-transparent bg-transparent px-2 text-sm hover:border-line-strong" style={{ height: 28 }}
         placeholder="Add a device: type a name, pick a template, press Enter" value={name} onChange={(e) => setName(e.target.value)} aria-label="New device name" maxLength={100} />
       <select className="input h-7 w-auto max-w-[200px] text-sm" style={{ height: 28 }} value={tid} onChange={(e) => setTid(e.target.value)} aria-label="New device template">
-        {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        {/* Shelves are added from the rack library; they do not appear in the inventory. */}
+        {templates.filter((t) => t.category !== 'shelf').map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
       </select>
       <button className="btn btn-primary btn-sm" disabled={!name.trim() || busy}>Add</button>
     </form>

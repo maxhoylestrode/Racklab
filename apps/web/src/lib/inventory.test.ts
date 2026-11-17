@@ -33,8 +33,13 @@ describe('inventory rows', () => {
     expect(rows.find((r) => r.device.name === 'Pi')!.rackName).toBe('Home Rack');
   });
 
+  it('leaves shelves out (their riders still name the shelf)', () => {
+    expect(names(rows)).not.toContain('Shelf A');
+    expect(rows).toHaveLength(4);
+  });
+
   it('default sort is status (offline first) then name', () => {
-    expect(names(sortRows(rows, DEFAULT_SORT))).toEqual(['Hypervisor', 'Spare laptop', 'Core switch', 'Pi', 'Shelf A']);
+    expect(names(sortRows(rows, DEFAULT_SORT))).toEqual(['Hypervisor', 'Spare laptop', 'Core switch', 'Pi']);
   });
 
   it('sorts IPs numerically, empty last', () => {
@@ -61,10 +66,10 @@ describe('filters and grouping combine', () => {
 
   it('groups a filtered set by rack, role and status with counts', () => {
     const online = filterRows(rows, { ...NO_FILTERS, status: ['online', 'planned'] });
-    expect(groupRows(online, 'rack').map((g) => [g.label, g.rows.length])).toEqual([['Home Rack', 3], ['Unracked', 1]]);
+    expect(groupRows(online, 'rack').map((g) => [g.label, g.rows.length])).toEqual([['Home Rack', 2], ['Unracked', 1]]);
     expect(groupRows(rows, 'role').map((g) => g.label)).toEqual(['Server', 'Switch', 'No role']);
     expect(groupRows(rows, 'status').map((g) => g.label)).toEqual(['offline', 'planned', 'online']);
-    expect(groupRows(rows, 'none')[0].rows).toHaveLength(5);
+    expect(groupRows(rows, 'none')[0].rows).toHaveLength(4);
   });
 });
 
