@@ -269,3 +269,12 @@ Two briefs from the user, applied together: a light, flat "desk" restyle that ma
   - Lighthouse accessibility is 100 on setup, inventory, rack, topology, docs, projects, settings and audit.
   - Rack scrolling with 60 devices and 100 cables measured 141 fps.
 - **Known and unchanged:** axe's `nested-interactive` warning on kanban cards (a card button that contains its status menu button) predates both redesigns.
+
+## Inventory: services as a directory (requested after the desk redesign)
+
+- Devices that host services get an expand arrow in the Inventory, and their secondary line says how many services they have. Expanding lists the services as an indented tree in the same order as the device panel (sort order, then VMID, then name), each with its status dot, kind and VMID, name, IP and port, and a link that opens the service's own web interface in a new tab.
+- Clicking a service name selects the device, opens its panel on the Services tab and highlights that service for a moment (`useUi.focusService`, cleared after 2.5 seconds).
+- "Expand services" in the toolbar opens or closes every host at once. The search box also matches service names, kinds, VMIDs, ports and URLs: a matching host stays in the list and opens to show the matching service, which is tinted.
+- On phones the card shows the service count, and the panel's Services tab holds the list.
+- Data comes from the existing `GET /services` and `GET /ip-addresses`, refreshed whenever the device list changes. No API change.
+- Shelves are left out of the Inventory (rows, counts, the online pill and the quick-add template list). A device on a shelf still shows "Shelf 2 slot 1" as its position.

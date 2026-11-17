@@ -21,6 +21,9 @@ export function DeviceDrawer() {
   const device = selection?.kind === 'device' ? devices.find((d) => d.id === selection.id) : undefined;
   const [tab, setTab] = useState<Tab>('Overview');
   useEffect(() => { if (!device) setTab('Overview'); }, [device]);
+  // Opened from a service in the inventory: go straight to Services (ServicesTab highlights it).
+  const focusService = useUi((s) => s.focusService);
+  useEffect(() => { if (focusService && device) setTab('Services'); }, [focusService, device]);
   const tpl = device ? templates.find((t) => t.id === device.template_id) : undefined;
   const navigate = useNavigate();
   const onRack = useLocation().pathname.startsWith('/rack');

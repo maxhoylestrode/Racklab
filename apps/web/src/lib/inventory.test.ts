@@ -91,3 +91,32 @@ describe('CSV export', () => {
     expect(parseIpInput('not an ip')).toBeNull();
   });
 });
+
+describe('services under devices', () => {
+  const svc = (id: string, device_id: string, name: string, over: Partial<import('@rackmap/shared').Service> = {}) => ({
+    id, device_id, name, parent_service_id: null, kind: 'lxc' as const, vmid_or_ctid: null, ip_address_id: null, port_number: null, url: null,
+    status: 'running' as const, notes: null, sort_order: 0, ...stamp, ...over,
+  });
+  const services = [
+    svc('pve', 'Hypervisor', 'Proxmox VE', { kind: 'app', port_number: 8006 }),
+    svc('jf', 'Hypervisor', 'jellyfin', { parent_service_id: 'pve', vmid_or_ctid: 101, sort_order: 1 }),
+    svc('ph', 'Hypervisor', 'pihole', { parent_service_id: 'pve', vmid_or_ctid: 100, sort_order: 0 }),
+    svc('dk', 'Pi', 'docker', { kind: 'docker' }),
+  ];
+
+  it('lists a device\'s services parents first, children indented in order', async () => {
+    const { serviceLines } = await import('./inventory');
+    expect(serviceLines(services, 'Hypervisor').map((l) => [l.service.name, l.depth])).toEqual([['Proxmox VE', 0], ['pihole', 1], ['jellyfin', 1]]);
+    expect(serviceLines(services, 'Core switch')).toEqual([]);
+  });
+
+  it('search finds a device by one of its services', async () => {
+    const { serviceMatches } = await import('./inventory');
+    const hits = serviceMatches(services, 'jelly');
+    expect([...hits]).toEqual(['Hypervisor']);
+    expect(names(filterRows(rows, { ...NO_FILTERS, q: 'jelly' }, hits))).toEqual(['Hypervisor']);
+    expect(names(filterRows(rows, { ...NO_FILTERS, q: 'jelly' }))).toEqual([]);
+    expect([...serviceMatches(services, '101')]).toEqual(['Hypervisor']);
+    expect(serviceMatches(services, '  ').size).toBe(0);
+  });
+});

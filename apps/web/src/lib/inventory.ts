@@ -1,4 +1,4 @@
-import type { Device, DeviceStatus, DeviceTemplate, InventoryRow, Rack } from '@rackmap/shared';
+import type { Device, DeviceStatus, DeviceTemplate, InventoryRow, Rack, Service } from '@rackmap/shared';
 
 /** One table row: the device plus everything derived for display, filtering, sorting and grouping. */
 export interface InvRow {
@@ -63,8 +63,11 @@ export function activeFilterCount(f: Filters): number {
   return (f.status.length ? 1 : 0) + (f.role.length ? 1 : 0) + (f.tag.length ? 1 : 0) + (f.placement ? 1 : 0) + (f.hasProjects ? 1 : 0) + (f.ipConflict ? 1 : 0);
 }
 
-/** All filters combine with AND; values inside one filter combine with OR. */
-export function filterRows(rows: InvRow[], f: Filters): InvRow[] {
+/**
+ * All filters combine with AND; values inside one filter combine with OR. Search also matches a device whose
+ * services match (pass serviceMatches(services, f.q)).
+ */
+export function filterRows(rows: InvRow[], f: Filters, serviceHits?: Set<string>): InvRow[] {
   const q = f.q.trim().toLowerCase();
   return rows.filter(({ device: d, tpl, position, extra, racked }) => {
     if (f.status.length && !f.status.includes(d.status)) return false;
@@ -76,7 +79,7 @@ export function filterRows(rows: InvRow[], f: Filters): InvRow[] {
     if (f.ipConflict && !extra?.ip_conflict) return false;
     if (q) {
       const hay = [d.name, d.hostname, d.role, d.os, tpl?.name, position, extra?.primary_ip?.address, ...d.tags].filter(Boolean).join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
+      if (!hay.includes(q) && !serviceHits?.has(d.id)) return false;
     }
     return true;
   });
@@ -187,3 +190,36 @@ export function parseIpInput(v: string): { address: string; prefix_length: numbe
 }
 
 export const parseTags = (v: string) => [...new Set(v.split(',').map((t) => t.trim()).filter(Boolean))];
+
+// ---------------------------------------------------------------- services (the per-device directory)
+export interface ServiceLine { service: Service; depth: number }
+
+/** A device's services as a depth-first list (parents before children), in the device panel's order. */
+export function serviceLines(services: Service[], deviceId: string): ServiceLine[] {
+  const mine = services.filter((s) => s.device_id === deviceId);
+  const ids = new Set(mine.map((s) => s.id));
+  const kids = new Map<string | null, Service[]>();
+  for (const s of mine) {
+    const parent = s.parent_service_id && ids.has(s.parent_service_id) ? s.parent_service_id : null;
+    (kids.get(parent) ?? kids.set(parent, []).get(parent)!).push(s);
+  }
+  const out: ServiceLine[] = [];
+  const walk = (parent: string | null, depth: number) => {
+    // Same order as the device panel (buildTree on the server): sort order, then VMID, then name.
+    for (const s of (kids.get(parent) ?? []).sort((a, b) => a.sort_order - b.sort_order || (a.vmid_or_ctid ?? 0) - (b.vmid_or_ctid ?? 0) || a.name.localeCompare(b.name))) {
+      out.push({ service: s, depth });
+      walk(s.id, depth + 1);
+    }
+  };
+  walk(null, 0);
+  return out;
+}
+
+/** Device ids whose services match the search text (name, kind, VMID, port or URL). */
+export function serviceMatches(services: Service[], q: string): Set<string> {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return new Set();
+  return new Set(services
+    .filter((s) => [s.name, s.kind, s.vmid_or_ctid?.toString(), s.port_number?.toString(), s.url].filter(Boolean).join(' ').toLowerCase().includes(needle))
+    .map((s) => s.device_id));
+}

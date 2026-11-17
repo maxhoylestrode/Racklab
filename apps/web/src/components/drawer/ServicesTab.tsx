@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useUi } from '../../store/ui';
 import { SERVICE_KINDS, SERVICE_STATUSES, type Device, type IpAddress, type Service, type ServiceKind, type ServiceNode, type ServiceStatus } from '@rackmap/shared';
 import { useFetch } from '../../lib/useFetch';
 import { api } from '../../lib/api';
@@ -6,7 +7,7 @@ import { toast } from '../../store/toast';
 import { Modal, StatusDot, confirmDialog } from '../ui';
 import { Icon } from '../Icon';
 
-const KIND_LABEL: Record<ServiceKind, string> = { vm: 'VM', lxc: 'CT', docker: 'Docker', app: 'App', other: 'Other' };
+export const KIND_LABEL: Record<ServiceKind, string> = { vm: 'VM', lxc: 'CT', docker: 'Docker', app: 'App', other: 'Other' };
 
 /** Tree of VMs, containers and apps hosted on a device. Drag a row onto another to reparent; drop on the root zone to un-nest. */
 export function ServicesTab({ device }: { device: Device }) {
@@ -15,6 +16,14 @@ export function ServicesTab({ device }: { device: Device }) {
   const [editing, setEditing] = useState<{ svc: Service | null; parent: string | null } | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
+  const focus = useUi((s) => s.focusService);
+  // Highlight the service the inventory asked for, scroll to it, then let the highlight go.
+  useEffect(() => {
+    if (!focus || !tree.data) return;
+    requestAnimationFrame(() => document.querySelector(`[data-service="${focus}"]`)?.scrollIntoView({ block: 'nearest' }));
+    const t = setTimeout(() => useUi.getState().setFocusService(null), 2500);
+    return () => clearTimeout(t);
+  }, [focus, tree.data]);
 
   const reparent = async (id: string, parent: string | null) => {
     try {
@@ -32,7 +41,8 @@ export function ServicesTab({ device }: { device: Device }) {
         onDragOver={(e) => { if (dragId && dragId !== n.id) { e.preventDefault(); setOver(n.id); } }}
         onDragLeave={() => setOver((o) => (o === n.id ? null : o))}
         onDrop={(e) => { e.preventDefault(); setOver(null); if (dragId && dragId !== n.id) void reparent(dragId, n.id); }}
-        className={`group flex h-9 items-center gap-2 rounded-control border px-2 text-sm transition-colors duration-fast ${over === n.id ? 'border-dashed border-accent bg-accent/10' : 'border-transparent hover:bg-surface-hover'}`}
+        data-service={n.id}
+        className={`group flex h-9 items-center gap-2 rounded-control border px-2 text-sm transition-colors duration-fast ${over === n.id ? 'border-dashed border-accent bg-accent/10' : focus === n.id ? 'border-transparent bg-tint text-tint-ink' : 'border-transparent hover:bg-surface-hover'}`}
         style={{ marginLeft: depth * 16 }}
       >
         <Icon name="grip" size={12} className="cursor-grab text-ink-3" />

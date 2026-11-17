@@ -37,6 +37,9 @@ interface UiState {
   /** One-shot request to scroll a device into view in another view (Show in rack / Show in inventory). */
   reveal: { view: 'rack' | 'inventory'; id: string } | null;
   setReveal: (r: UiState['reveal']) => void;
+  /** One-shot request for the device drawer to open its Services tab and highlight this service. */
+  focusService: string | null;
+  setFocusService: (id: string | null) => void;
   setTheme: (t: ThemePref) => void;
   setUnitPx: (px: number) => void;
   setWireMode: (v: boolean) => void;
@@ -62,6 +65,8 @@ export const useUi = create<UiState>((set) => ({
   search: '',
   reveal: null,
   setReveal: (reveal) => set({ reveal }),
+  focusService: null,
+  setFocusService: (focusService) => set({ focusService }),
   setTheme: (themePref) => { save('themePref', themePref); const theme = resolveTheme(themePref); applyTheme(theme); set({ theme, themePref }); },
   setUnitPx: (px) => {
     const unitPx = Math.round(Math.min(UNIT_MAX, Math.max(UNIT_MIN, px)));

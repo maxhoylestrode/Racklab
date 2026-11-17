@@ -20,6 +20,7 @@ import InventoryPage from './InventoryPage';
 import { useLab } from '../store/lab';
 import { useToast } from '../store/toast';
 import { ApiError } from '../lib/api';
+import { useUi } from '../store/ui';
 
 const stamp = { created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-02T00:00:00Z' };
 const tpl: DeviceTemplate = { id: 't1', key: 'switch_8_port', name: '8 port switch', category: 'switch', form_factor: 'rack', height_u: 1, width_fraction: 1, port_layout: [], illustration_key: 'switch', shelf_slots: null, is_builtin: true, ...stamp };
@@ -29,6 +30,10 @@ const dev = (id: string, name: string, over: Partial<Device> = {}): Device => ({
   role: null, os: null, location_note: null, status: 'online', tags: [], color_accent: null, ports: [], ...stamp, ...over,
 });
 const extras: InventoryRow[] = [];
+const services = [
+  { id: 's1', device_id: 'a', name: 'Proxmox VE', parent_service_id: null, kind: 'app', vmid_or_ctid: null, ip_address_id: null, port_number: 8006, url: 'https://10.0.0.1:8006', status: 'running', notes: null, sort_order: 0, ...stamp },
+  { id: 's2', device_id: 'a', name: 'jellyfin', parent_service_id: 's1', kind: 'lxc', vmid_or_ctid: 101, ip_address_id: null, port_number: null, url: null, status: 'running', notes: null, sort_order: 0, ...stamp },
+];
 
 function seed() {
   const devices = [dev('a', 'Alpha', { rack_unit_start: 1, role: 'Edge' }), dev('b', 'Bravo', { rack_unit_start: 2 }), dev('c', 'Charlie', { rack_unit_start: 3 })];
@@ -43,7 +48,8 @@ const row = (name: string) => within(screen.getByRole('table', { name: 'Devices'
 beforeEach(() => {
   seed();
   useToast.setState({ toasts: [] });
-  server.get.mockImplementation(async (url: string) => (url === '/inventory' ? extras : []));
+  server.get.mockImplementation(async (url: string) => (url === '/inventory' ? extras : url === '/services' ? services : []));
+  useUi.setState({ focusService: null });
   server.patch.mockReset();
   server.post.mockReset();
   window.HTMLElement.prototype.scrollIntoView = vi.fn();
@@ -133,5 +139,28 @@ describe('Inventory rack position', () => {
     expect(await within(dialog).findByRole('alert')).toHaveProperty('textContent', 'U1 is taken by Alpha');
     expect(server.post).toHaveBeenCalledWith('/devices/b/move', { rack_id: 'r1', rack_unit_start: 1, shelf_device_id: null, shelf_slot: null });
     expect(useLab.getState().devices.find((d) => d.id === 'b')!.rack_unit_start).toBe(2);
+  });
+});
+
+describe('Inventory services', () => {
+  it('expands a device to list its services; clicking one opens the device panel on that service', async () => {
+    renderPage();
+    const toggle = await within(row('Alpha')).findByRole('button', { name: 'Show 2 services on Alpha' });
+    expect(within(row('Bravo')).queryByRole('button', { name: /services on Bravo/ })).toBeNull();
+    fireEvent.click(toggle);
+    const link = await screen.findByRole('button', { name: 'Open jellyfin in the device panel' });
+    expect(screen.getByRole('link', { name: /Open Proxmox VE web interface/ }).getAttribute('href')).toBe('https://10.0.0.1:8006');
+    fireEvent.click(link);
+    expect(useLab.getState().selection).toEqual({ kind: 'device', id: 'a' });
+    expect(useUi.getState().focusService).toBe('s2');
+    expect((await screen.findByRole('tab', { name: 'Services' })).getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('searching for a service shows and expands its host', async () => {
+    renderPage();
+    await within(row('Alpha')).findByRole('button', { name: /services on Alpha/ });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search devices' }), { target: { value: 'jelly' } });
+    expect(await screen.findByRole('button', { name: 'Open jellyfin in the device panel' })).toBeTruthy();
+    expect(within(screen.getByRole('table', { name: 'Devices' })).queryByText('Bravo')).toBeNull();
   });
 });

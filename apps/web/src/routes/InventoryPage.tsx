@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { DEVICE_STATUSES, type Device, type DeviceStatus, type InventoryRow, type IpAddress, type Project } from '@rackmap/shared';
+import { DEVICE_STATUSES, type Device, type DeviceStatus, type InventoryRow, type IpAddress, type Project, type Service } from '@rackmap/shared';
 import { useLab, type Placement } from '../store/lab';
 import { useUi } from '../store/ui';
 import { toast } from '../store/toast';
@@ -7,7 +7,7 @@ import { QUICK_ADD_EVENT } from '../store/chrome';
 import { api } from '../lib/api';
 import { useFetch } from '../lib/useFetch';
 import {
-  buildRows, filterRows, sortRows, groupRows, activeFilterCount, toCsv, parseIpInput, parseTags, cellText,
+  buildRows, filterRows, sortRows, groupRows, activeFilterCount, toCsv, parseIpInput, parseTags, cellText, serviceLines, serviceMatches,
   COLUMNS, NO_FILTERS, DEFAULT_SORT, type ColumnKey, type Filters, type GroupBy, type InvRow, type Sort, type SortKey,
 } from '../lib/inventory';
 import { DeviceDrawer } from '../components/drawer/DeviceDrawer';
@@ -15,6 +15,7 @@ import { Icon, categoryIcon } from '../components/Icon';
 import { StatusDot, confirmDialog } from '../components/ui';
 import { PageHeader, SearchInput, Tooltip } from '../components/primitives';
 import { EditableText, PositionPicker, StatusSelect } from '../components/inventory/cells';
+import { KIND_LABEL } from '../components/drawer/ServicesTab';
 
 type EditCol = 'name' | 'role' | 'os' | 'hostname' | 'tags' | 'ip';
 
@@ -33,6 +34,9 @@ export default function InventoryPage() {
   const lab = useLab();
   const { devices, templates, racks, selection, select } = lab;
   const extras = useFetch<InventoryRow[]>('/inventory');
+  const services = useFetch<Service[]>('/services');
+  const allIps = useFetch<IpAddress[]>('/ip-addresses');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [sort, setSort] = useState<Sort>(DEFAULT_SORT);
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
@@ -49,10 +53,27 @@ export default function InventoryPage() {
   // Refresh the per-device extras (IPs, counts) whenever the device list changes shape.
   const sig = useMemo(() => devices.map((d) => `${d.id}:${d.updated_at}`).join(','), [devices]);
   const firstSig = useRef(sig);
-  useEffect(() => { if (sig !== firstSig.current) { firstSig.current = sig; void extras.reload(); } }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (sig !== firstSig.current) { firstSig.current = sig; void extras.reload(); void services.reload(); void allIps.reload(); } }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const all = useMemo(() => buildRows(devices, templates, racks, extras.data), [devices, templates, racks, extras.data]);
-  const rows = useMemo(() => sortRows(filterRows(all, filters), sort), [all, filters, sort]);
+  // Search also finds devices by their services, and opens those devices' service lists.
+  const serviceHits = useMemo(() => serviceMatches(services.data ?? [], filters.q), [services.data, filters.q]);
+  const rows = useMemo(() => sortRows(filterRows(all, filters, serviceHits), sort), [all, filters, serviceHits, sort]);
+  const linesByDevice = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof serviceLines>>();
+    for (const d of devices) { const l = serviceLines(services.data ?? [], d.id); if (l.length) m.set(d.id, l); }
+    return m;
+  }, [devices, services.data]);
+  const ipText = useMemo(() => new Map((allIps.data ?? []).map((i) => [i.id, i.address])), [allIps.data]);
+  const focusService = useUi((s) => s.focusService);
+  const isExpanded = (id: string) => expanded.has(id) || serviceHits.has(id);
+  const toggleExpanded = (id: string) => setExpanded((cur) => { const n = new Set(cur); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const allWithServices = useMemo(() => rows.filter((r) => linesByDevice.has(r.device.id)).map((r) => r.device.id), [rows, linesByDevice]);
+  const openService = useCallback((deviceId: string, serviceId: string) => {
+    setActive(deviceId);
+    useUi.getState().setFocusService(serviceId);
+    select({ kind: 'device', id: deviceId });
+  }, [select]);
   const groups = useMemo(() => groupRows(rows, groupBy), [rows, groupBy]);
   const visible = useMemo(() => groups.flatMap((g) => (collapsed.has(g.key) ? [] : g.rows)), [groups, collapsed]);
   const roles = useMemo(() => [...new Set(devices.map((d) => d.role).filter(Boolean) as string[])].sort(), [devices]);
@@ -198,7 +219,9 @@ export default function InventoryPage() {
           </>} />
 
         <Toolbar filters={filters} setFilters={setFilters} roles={roles} tags={tags} groupBy={groupBy} setGroupBy={setGroupBy}
-          cols={cols} setCols={setColsSaved} searchRef={searchRef} nFilters={nFilters} shown={rows.length} total={all.length} />
+          cols={cols} setCols={setColsSaved} searchRef={searchRef} nFilters={nFilters} shown={rows.length} total={all.length}
+          servicesOpen={allWithServices.length > 0 && allWithServices.every((id) => expanded.has(id))} hasServices={allWithServices.length > 0}
+          onServices={(open) => setExpanded(open ? new Set(allWithServices) : new Set())} />
 
         {checked.size > 0 && <BulkBar ids={[...checked]} roles={roles} tags={tags} onClear={() => setChecked(new Set())} onDelete={() => void deleteIds([...checked])} />}
 
@@ -214,7 +237,7 @@ export default function InventoryPage() {
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2"><span className="truncate text-base font-medium text-ink">{r.device.name}</span><StatusDot status={r.device.status} /></span>
                     <span className="mt-1 flex items-center gap-2 text-xs text-ink-2">
-                      <span className="font-mono">{r.extra?.primary_ip?.address ?? 'no IP'}</span><span aria-hidden>·</span><span className="truncate">{r.position}</span>
+                      <span className="font-mono">{r.extra?.primary_ip?.address ?? 'no IP'}</span><span aria-hidden>·</span><span className="truncate">{r.position}</span>{linesByDevice.has(r.device.id) && <><span aria-hidden>·</span><span className="whitespace-nowrap">{linesByDevice.get(r.device.id)!.length} services</span></>}
                     </span>
                   </span>
                   <Icon name="chevronRight" className="text-ink-3" />
@@ -247,12 +270,19 @@ export default function InventoryPage() {
                     </tr>
                   )}
                   {!collapsed.has(g.key) && g.rows.map((r) => (
-                    <Row key={r.device.id} r={r} cols={cols} active={active === r.device.id} open={drawerId === r.device.id} checked={checked.has(r.device.id)}
+                    <Fragment key={r.device.id}>
+                    <Row r={r} serviceCount={linesByDevice.get(r.device.id)?.length ?? 0} expanded={isExpanded(r.device.id)} onToggle={() => toggleExpanded(r.device.id)} cols={cols} active={active === r.device.id} open={drawerId === r.device.id} checked={checked.has(r.device.id)}
                       editing={editing?.id === r.device.id ? editing.col : null}
                       setEditing={(col) => setEditing(col ? { id: r.device.id, col } : null)}
                       onCheck={(e) => toggleCheck(r.device.id, e)} onOpen={() => openRow(r.device.id)}
                       onPatch={(p) => void patch(r.device.id, p)} onIp={(v) => void saveIp(r, v)}
                       onPosition={(rect) => setPicker({ id: r.device.id, rect })} />
+                    {isExpanded(r.device.id) && linesByDevice.get(r.device.id)?.map(({ service: sv, depth }) => (
+                      <ServiceRow key={sv.id} sv={sv} depth={depth} colSpan={cols.length + 1} hit={!!filters.q.trim() && sv.name.toLowerCase().includes(filters.q.trim().toLowerCase())}
+                        address={sv.ip_address_id ? ipText.get(sv.ip_address_id) : undefined} focused={focusService === sv.id}
+                        onOpen={() => openService(r.device.id, sv.id)} />
+                    ))}
+                    </Fragment>
                   ))}
                 </Fragment>
               ))}
@@ -278,9 +308,10 @@ export default function InventoryPage() {
 }
 
 // ---------------------------------------------------------------- table row
-function Row({ r, cols, active, open, checked, editing, setEditing, onCheck, onOpen, onPatch, onIp, onPosition }: {
+function Row({ r, cols, active, open, checked, editing, setEditing, onCheck, onOpen, onPatch, onIp, onPosition, serviceCount, expanded, onToggle }: {
   r: InvRow; cols: ColumnKey[]; active: boolean; open: boolean; checked: boolean; editing: EditCol | null; setEditing: (c: EditCol | null) => void;
   onCheck: (e: MouseEvent) => void; onOpen: () => void; onPatch: (p: Partial<Device>) => void; onIp: (v: string) => void; onPosition: (rect: DOMRect) => void;
+  serviceCount: number; expanded: boolean; onToggle: () => void;
 }) {
   const d = r.device;
   const ed = (col: EditCol) => ({ editing: editing === col, setEditing: (on: boolean) => setEditing(on ? col : null) });
@@ -292,12 +323,19 @@ function Row({ r, cols, active, open, checked, editing, setEditing, onCheck, onO
         <input type="checkbox" aria-label={`Select ${d.name}`} checked={checked} onChange={() => {}} onClick={onCheck} />
       </td>
       <td className="min-w-[220px]">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {serviceCount > 0 ? (
+            <button type="button" className="btn btn-ghost btn-sm btn-icon !h-6 !w-6 shrink-0" aria-expanded={expanded}
+              aria-label={`${expanded ? 'Hide' : 'Show'} ${serviceCount} service${serviceCount === 1 ? '' : 's'} on ${d.name}`}
+              onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+              <Icon name={expanded ? 'chevronDown' : 'chevronRight'} />
+            </button>
+          ) : <span className="w-6 shrink-0" aria-hidden />}
           <span className="icon-tile" aria-hidden><Icon name={categoryIcon(r.tpl?.category)} /></span>
           <div className="min-w-0">
             <EditableText label={`Name of ${d.name}`} className="!h-5" value={d.name} {...ed("name")} onSave={(v) => { if (v) onPatch({ name: v }); }}
               display={<span className="whitespace-nowrap font-medium text-ink">{d.name}</span>} />
-            <p className="truncate text-xs text-ink-2">{d.role ? `${d.role} · ${r.tpl?.name ?? ''}` : r.tpl?.name}</p>
+            <p className="truncate text-xs text-ink-2">{d.role ? `${d.role} · ${r.tpl?.name ?? ''}` : r.tpl?.name}{serviceCount > 0 && ` · ${serviceCount} service${serviceCount === 1 ? '' : 's'}`}</p>
           </div>
         </div>
       </td>
@@ -350,6 +388,37 @@ function Row({ r, cols, active, open, checked, editing, setEditing, onCheck, onO
   );
 }
 
+/** One service under its host in the inventory: a small directory entry. Clicking opens it in the device panel. */
+function ServiceRow({ sv, depth, colSpan, address, hit, focused, onOpen }: {
+  sv: Service; depth: number; colSpan: number; address?: string; hit: boolean; focused: boolean; onOpen: () => void;
+}) {
+  const where = address ? `${address}${sv.port_number ? `:${sv.port_number}` : ''}` : sv.port_number ? `:${sv.port_number}` : '';
+  let host = '';
+  try { host = sv.url ? new URL(sv.url).host : ''; } catch { host = sv.url ?? ''; }
+  return (
+    <tr className={`${focused || hit ? '!bg-tint-soft' : ''}`} data-service-row={sv.id}>
+      <td />
+      <td colSpan={colSpan} className="!py-1">
+        <div className="flex items-center gap-3" style={{ paddingLeft: 32 + depth * 20 }}>
+          <span className="h-4 w-3 shrink-0 border-b border-l border-line-strong" style={{ marginTop: -8, borderBottomLeftRadius: 4 }} aria-hidden />
+          <StatusDot status={sv.status} />
+          <span className="chip w-[72px] shrink-0 justify-between font-mono">{KIND_LABEL[sv.kind]}{sv.vmid_or_ctid != null && <span className="text-ink">{sv.vmid_or_ctid}</span>}</span>
+          <button type="button" className="link min-w-0 truncate text-left text-sm no-underline hover:underline" onClick={(e) => { e.stopPropagation(); onOpen(); }}
+            aria-label={`Open ${sv.name} in the device panel`}>{sv.name}</button>
+          {where && <span className="whitespace-nowrap font-mono text-xs text-ink-2">{where}</span>}
+          {sv.url && (
+            <a href={sv.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+              className="inline-flex h-6 items-center gap-1 rounded-full border border-line-strong px-2 text-xs text-ink-2 hover:border-ink-3 hover:text-ink"
+              aria-label={`Open ${sv.name} web interface (${host}) in a new tab`}>
+              <span className="max-w-[200px] truncate font-mono">{host}</span><Icon name="external" />
+            </a>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 function SortTh({ k, sort, setSort, children }: { k: SortKey; sort: Sort; setSort: (s: Sort) => void; children: string }) {
   const on = sort.key === k;
   return (
@@ -362,9 +431,10 @@ function SortTh({ k, sort, setSort, children }: { k: SortKey; sort: Sort; setSor
 }
 
 // ---------------------------------------------------------------- toolbar
-function Toolbar({ filters, setFilters, roles, tags, groupBy, setGroupBy, cols, setCols, searchRef, nFilters, shown, total }: {
+function Toolbar({ filters, setFilters, roles, tags, groupBy, setGroupBy, cols, setCols, searchRef, nFilters, shown, total, servicesOpen, hasServices, onServices }: {
   filters: Filters; setFilters: (f: Filters) => void; roles: string[]; tags: string[]; groupBy: GroupBy; setGroupBy: (g: GroupBy) => void;
   cols: ColumnKey[]; setCols: (c: ColumnKey[]) => void; searchRef: React.RefObject<HTMLInputElement>; nFilters: number; shown: number; total: number;
+  servicesOpen: boolean; hasServices: boolean; onServices: (open: boolean) => void;
 }) {
   const toggleIn = <T,>(arr: T[], v: T) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   return (
@@ -379,6 +449,11 @@ function Toolbar({ filters, setFilters, roles, tags, groupBy, setGroupBy, cols, 
         </div>
         <div className="flex-1" />
         <span className="font-mono text-xs text-ink-2" role="status">{shown === total ? `${total}` : `${shown} of ${total}`}</span>
+        {hasServices && (
+          <button className="btn btn-ghost btn-sm max-md:hidden" aria-pressed={servicesOpen} onClick={() => onServices(!servicesOpen)}>
+            <Icon name={servicesOpen ? 'chevronUp' : 'chevronDown'} />{servicesOpen ? 'Collapse services' : 'Expand services'}
+          </button>
+        )}
         <ColumnMenu cols={cols} setCols={setCols} />
       </div>
       <div className="flex items-center gap-2 max-md:-mx-2 max-md:overflow-x-auto max-md:px-2 max-md:pb-1 md:flex-wrap" role="group" aria-label="Filters">
