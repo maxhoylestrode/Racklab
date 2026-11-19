@@ -16,6 +16,7 @@ import { StatusDot, confirmDialog } from '../components/ui';
 import { PageHeader, SearchInput, Tooltip } from '../components/primitives';
 import { EditableText, PositionPicker, StatusSelect } from '../components/inventory/cells';
 import { KIND_LABEL } from '../components/drawer/ServicesTab';
+import { Dropdown, PillSelect, STATUS_COLOR } from '../components/Select';
 
 type EditCol = 'name' | 'role' | 'os' | 'hostname' | 'tags' | 'ip';
 
@@ -562,10 +563,9 @@ function QuickAdd({ onCreated }: { onCreated: (d: Device) => void }) {
       <span className="icon-tile !border-dashed !bg-transparent"><Icon name="plus" /></span>
       <input ref={ref} className="input h-7 min-w-[160px] flex-1 border-transparent bg-transparent px-2 text-sm hover:border-line-strong" style={{ height: 28 }}
         placeholder="Add a device: type a name, pick a template, press Enter" value={name} onChange={(e) => setName(e.target.value)} aria-label="New device name" maxLength={100} />
-      <select className="input h-7 w-auto max-w-[200px] text-sm" style={{ height: 28 }} value={tid} onChange={(e) => setTid(e.target.value)} aria-label="New device template">
-        {/* Shelves are added from the rack library; they do not appear in the inventory. */}
-        {templates.filter((t) => t.category !== 'shelf').map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-      </select>
+      {/* Shelves are added from the rack library; they do not appear in the inventory. */}
+      <Dropdown size="sm" className="w-auto max-w-[200px] text-sm" label="New device template" value={tid} onChange={setTid}
+        options={templates.filter((t) => t.category !== 'shelf').map((t) => ({ value: t.id, label: t.name }))} />
       <button className="btn btn-primary btn-sm" disabled={!name.trim() || busy}>Add</button>
     </form>
   );
@@ -606,7 +606,7 @@ function BulkBar({ ids, roles, tags, onClear, onDelete }: { ids: string[]; roles
     <div className="mt-3 flex flex-wrap items-center gap-2 rounded-panel bg-[#141414] px-3 py-2 text-sm text-[#f2f2ee] dark:bg-[#f2f2ee] dark:text-[#141414]" role="toolbar" aria-label="Bulk actions">
       <span className="font-medium">{ids.length} selected</span>
       <span className="mx-1 h-4 w-px bg-current opacity-20" aria-hidden />
-      <BulkSelect label="Set status" options={DEVICE_STATUSES.map((s) => [s, s])} onPick={(s) => void run(`Set status ${s}`, (d) => lab.updateDevice(d.id, { status: s as DeviceStatus }))} />
+      <BulkSelect label="Set status" options={DEVICE_STATUSES.map((s) => [s, s, STATUS_COLOR[s]])} onPick={(s) => void run(`Set status ${s}`, (d) => lab.updateDevice(d.id, { status: s as DeviceStatus }))} />
       <BulkInput label="Add tag" placeholder="tag" value={tag} setValue={setTag} list="bulk-tags" options={tags}
         onSubmit={(t) => void run(`Add tag ${t}`, (d) => (d.tags.includes(t) ? undefined : lab.updateDevice(d.id, { tags: [...d.tags, t] })))} />
       {tags.length > 0 && <BulkSelect label="Remove tag" options={tags.map((t) => [t, t])} onPick={(t) => void run(`Remove tag ${t}`, (d) => (d.tags.includes(t) ? lab.updateDevice(d.id, { tags: d.tags.filter((x) => x !== t) }) : undefined))} />}
@@ -620,13 +620,10 @@ function BulkBar({ ids, roles, tags, onClear, onDelete }: { ids: string[]; roles
   );
 }
 
-function BulkSelect({ label, options, onPick }: { label: string; options: [string, string][]; onPick: (v: string) => void }) {
+function BulkSelect({ label, options, onPick }: { label: string; options: [string, string, string?][]; onPick: (v: string) => void }) {
   return (
-    <select aria-label={label} value="" onChange={(e) => { if (e.target.value) onPick(e.target.value); }}
-      className="h-7 cursor-pointer appearance-none rounded-full border border-current/20 bg-transparent px-3 text-xs font-medium [border-color:rgb(127_127_127/0.45)]">
-      <option value="">{label}</option>
-      {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-    </select>
+    <PillSelect label={label} placeholder={label} value="" onChange={onPick} options={options.map(([v, l, color]) => ({ value: v, label: l, color }))}
+      buttonClassName="inline-flex h-7 items-center gap-1.5 rounded-full border bg-transparent px-3 text-xs font-medium [border-color:rgb(127_127_127/0.45)] hover:bg-white/10 dark:hover:bg-black/10" />
   );
 }
 

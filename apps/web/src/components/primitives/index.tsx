@@ -2,7 +2,7 @@
  * UI primitives. Each one renders the token-backed recipe from index.css (panel, btn-*, input, chip, table-base),
  * so screens compose these instead of styling ad hoc.
  */
-import { forwardRef, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type KeyboardEvent, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { forwardRef, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes, type KeyboardEvent, type ReactNode, type TextareaHTMLAttributes } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, type HTMLMotionProps } from 'framer-motion';
 import { Icon, type IconName } from '../Icon';
@@ -63,9 +63,6 @@ export const IconButton = forwardRef<HTMLButtonElement, Omit<ButtonProps, 'child
 // ---------------------------------------------------------------- Fields
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...rest }, ref) {
   return <input ref={ref} className={cx('input', className)} {...rest} />;
-});
-export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function Select({ className, ...rest }, ref) {
-  return <select ref={ref} className={cx('input', className)} {...rest} />;
 });
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...rest }, ref) {
   return <textarea ref={ref} className={cx('input', className)} {...rest} />;

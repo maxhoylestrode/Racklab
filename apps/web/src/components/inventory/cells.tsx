@@ -4,7 +4,7 @@ import { DEVICE_STATUSES, type Device, type DeviceStatus } from '@rackmap/shared
 import { useLab, UNPLACED, type Placement } from '../../store/lab';
 import { errorMessage } from '../../lib/api';
 import { Icon } from '../Icon';
-import { StatusDot } from '../ui';
+import { Dropdown, PillSelect, STATUS_COLOR } from '../Select';
 
 /**
  * Click or press Enter to edit; Enter saves, Escape cancels, blur saves. `editing` is controlled by the table
@@ -49,13 +49,9 @@ export function EditableText({ value, display, label, editing, setEditing, onSav
 /** Status as an inline dropdown chip. */
 export function StatusSelect({ device, onChange }: { device: Device; onChange: (s: DeviceStatus) => void }) {
   return (
-    <span className="relative inline-flex" onClick={(e) => e.stopPropagation()}>
-      <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2"><StatusDot status={device.status} /></span>
-      <select aria-label={`Status of ${device.name}`} value={device.status} onChange={(e) => onChange(e.target.value as DeviceStatus)}
-        onKeyDown={(e) => e.stopPropagation()}
-        className="h-6 cursor-pointer appearance-none rounded-full border border-line-strong bg-panel pl-5 pr-2 text-xs font-medium text-ink-2 hover:text-ink focus-visible:outline-2">
-        {DEVICE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-      </select>
+    <span className="inline-flex" onClick={(e) => e.stopPropagation()}>
+      <PillSelect size="sm" label={`Status of ${device.name}`} value={device.status} onChange={(v) => onChange(v as DeviceStatus)}
+        options={DEVICE_STATUSES.map((s) => ({ value: s, label: s, color: STATUS_COLOR[s] }))} />
     </span>
   );
 }
@@ -106,7 +102,7 @@ export function PositionPicker({ device, anchor, onClose, onMove }: {
       {mode === 'rack' && (
         <div className="grid grid-cols-[1fr_80px] gap-2">
           <label><span className="label">Rack</span>
-            <select className="input" value={rackId} onChange={(e) => setRackId(e.target.value)}>{racks.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
+            <Dropdown label="Rack" value={rackId} onChange={setRackId} options={racks.map((r) => ({ value: r.id, label: r.name }))} />
           </label>
           <label><span className="label">Bottom U</span><input className="input font-mono" type="number" min={1} value={unit} onChange={(e) => setUnit(e.target.value)} /></label>
         </div>
@@ -114,10 +110,10 @@ export function PositionPicker({ device, anchor, onClose, onMove }: {
       {mode === 'shelf' && (shelves.length ? (
         <div className="grid grid-cols-[1fr_80px] gap-2">
           <label><span className="label">Shelf</span>
-            <select className="input" value={shelfId} onChange={(e) => setShelfId(e.target.value)}>{shelves.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+            <Dropdown label="Shelf" value={shelfId} onChange={setShelfId} options={shelves.map((s) => ({ value: s.id, label: s.name }))} />
           </label>
           <label><span className="label">Slot</span>
-            <select className="input font-mono" value={slot} onChange={(e) => setSlot(e.target.value)}>{Array.from({ length: slots }, (_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}</select>
+            <Dropdown label="Slot" className="font-mono" value={String(slot)} onChange={setSlot} options={Array.from({ length: slots }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))} />
           </label>
         </div>
       ) : <p className="text-sm text-ink-2">No shelves yet. Add a shelf to a rack first.</p>)}

@@ -16,6 +16,7 @@ import { IconButton, SearchInput, Tooltip, Actions } from '../components/primiti
 
 const Divider = () => <span className="mx-1 h-5 w-px shrink-0 bg-line-strong" aria-hidden />;
 import { exportPng, exportSvg } from '../lib/exportRack';
+import { Dropdown } from '../components/Select';
 
 export function RackPage() {
   const lab = useLab();
@@ -144,10 +145,8 @@ export function RackPage() {
         {/* toolbar on the light canvas */}
         <div className="rack-toolbar no-print flex h-10 shrink-0 items-center gap-2 overflow-x-auto" role="toolbar" aria-label="Rack tools">
           <label className="sr-only" htmlFor="rack-select">Rack</label>
-          <select id="rack-select" className="input w-auto max-w-[200px] shrink-0" value={rackId ?? ''} onChange={(e) => lab.setRack(e.target.value)}>
-            {racks.map((r) => <option key={r.id} value={r.id}>{r.name} ({r.total_units}U)</option>)}
-            {!racks.length && <option value="">No racks</option>}
-          </select>
+          <Dropdown id="rack-select" label="Rack" className="w-auto max-w-[200px] shrink-0" value={rackId ?? ''} onChange={(v) => lab.setRack(v)}
+            placeholder="No racks" options={racks.map((r) => ({ value: r.id, label: r.name, hint: `${r.total_units}U` }))} />
           <IconButton icon="plus" label="New rack" variant="secondary" size="md" onClick={() => setNewRack(true)} />
           <Divider />
           <Tooltip content="Click a port, then another port">
@@ -280,9 +279,8 @@ function ChangeTemplate({ deviceId, onClose }: { deviceId: string; onClose: () =
   if (!d) return null;
   return (
     <Modal open onClose={onClose} title={`Change template: ${d.name}`}>
-      <select className="input" value={tid} onChange={(e) => setTid(e.target.value)} aria-label="Template">
-        {templates.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.form_factor === 'rack' ? `${t.height_u}U` : 'loose'})</option>)}
-      </select>
+      <Dropdown label="Template" value={tid} onChange={setTid}
+        options={templates.map((t) => ({ value: t.id, label: t.name, hint: t.form_factor === 'rack' ? `${t.height_u}U` : 'loose' }))} />
       <p className="mt-2 text-xs text-ink-2">Ports with the same label keep their cables. Other ports and their cables are removed.</p>
       <Actions>
         <button className="btn" onClick={onClose}>Cancel</button>

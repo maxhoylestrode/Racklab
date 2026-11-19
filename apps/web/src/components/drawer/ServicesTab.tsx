@@ -6,6 +6,7 @@ import { api } from '../../lib/api';
 import { toast } from '../../store/toast';
 import { Modal, StatusDot, confirmDialog } from '../ui';
 import { Icon } from '../Icon';
+import { Dropdown, STATUS_COLOR } from '../Select';
 
 export const KIND_LABEL: Record<ServiceKind, string> = { vm: 'VM', lxc: 'CT', docker: 'Docker', app: 'App', other: 'Other' };
 
@@ -117,16 +118,15 @@ function ServiceDialog({ device, svc, parent, ips, onClose, onSaved }: {
         } catch (err) { toast.error(err); }
       }}>
         <label className="col-span-2"><span className="label">Name</span><input className="input" value={f.name} onChange={(e) => set('name', e.target.value)} required autoFocus /></label>
-        <label><span className="label">Kind</span><select className="input" value={f.kind} onChange={(e) => set('kind', e.target.value)}>{SERVICE_KINDS.map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}</select></label>
+        <label><span className="label">Kind</span><Dropdown label="Kind" value={f.kind} onChange={(v) => set('kind', v)} options={SERVICE_KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))} /></label>
         <label><span className="label">VMID / CTID</span><input type="number" className="input" value={f.vmid_or_ctid} onChange={(e) => set('vmid_or_ctid', e.target.value)} /></label>
         <label><span className="label">IP</span>
-          <select className="input" value={f.ip_address_id} onChange={(e) => set('ip_address_id', e.target.value)}>
-            <option value="">None</option>{ips.map((i) => <option key={i.id} value={i.id}>{i.address}</option>)}
-          </select>
+          <Dropdown label="IP" className="font-mono" value={f.ip_address_id} onChange={(v) => set('ip_address_id', v)}
+            options={[{ value: '', label: 'None' }, ...ips.map((i) => ({ value: i.id, label: i.address }))]} />
         </label>
         <label><span className="label">Port</span><input type="number" min={1} max={65535} className="input" value={f.port_number} onChange={(e) => set('port_number', e.target.value)} /></label>
         <label className="col-span-2"><span className="label">URL</span><input type="url" className="input" placeholder="https://" value={f.url} onChange={(e) => set('url', e.target.value)} /></label>
-        <label><span className="label">Status</span><select className="input" value={f.status} onChange={(e) => set('status', e.target.value)}>{SERVICE_STATUSES.map((s) => <option key={s}>{s}</option>)}</select></label>
+        <label><span className="label">Status</span><Dropdown label="Status" value={f.status} onChange={(v) => set('status', v)} options={SERVICE_STATUSES.map((s) => ({ value: s, label: s, color: STATUS_COLOR[s] }))} /></label>
         <label className="col-span-2"><span className="label">Notes</span><textarea className="input" rows={3} value={f.notes} onChange={(e) => set('notes', e.target.value)} /></label>
         <div className="col-span-2 mt-2 flex justify-between">
           {svc ? <button type="button" className="btn btn-danger" onClick={async () => {

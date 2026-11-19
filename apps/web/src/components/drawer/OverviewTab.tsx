@@ -7,6 +7,7 @@ import { DeviceThumb } from '../../illustrations';
 import { NewProjectDialog } from '../projects/NewProjectDialog';
 import { ProjectDrawer } from '../projects/ProjectDrawer';
 import { Icon } from '../Icon';
+import { Dropdown, STATUS_COLOR } from '../Select';
 
 function Field({ label, value, onSave, placeholder }: { label: string; value: string | null; onSave: (v: string | null) => void; placeholder?: string }) {
   const [v, setV] = useState(value ?? '');
@@ -40,9 +41,8 @@ export function OverviewTab({ device, tpl }: { device: Device; tpl: DeviceTempla
         <div className="col-span-2"><Field label="Name" value={device.name} onSave={(v) => v && save({ name: v })} /></div>
         <div>
           <label className="label" htmlFor="f-status">Status</label>
-          <select id="f-status" className="input" value={device.status} onChange={(e) => void save({ status: e.target.value as DeviceStatus })}>
-            {DEVICE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <Dropdown id="f-status" label="Status" value={device.status} onChange={(v) => void save({ status: v as DeviceStatus })}
+            options={DEVICE_STATUSES.map((s) => ({ value: s, label: s, color: STATUS_COLOR[s] }))} />
         </div>
         <div>
           <span className="label">Template</span>

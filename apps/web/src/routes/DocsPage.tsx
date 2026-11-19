@@ -12,6 +12,7 @@ import { useProjectMeta } from '../store/projectMeta';
 import { StatusDot, confirmDialog } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PageHeader, SummaryCard, TabPanel, Tabs } from '../components/primitives';
+import { Dropdown, STATUS_COLOR } from '../components/Select';
 
 /** The page's one teal card: addresses in use, with a bar per VLAN (real data only). */
 function IpSummary() {
@@ -148,15 +149,12 @@ function IpPlan() {
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="mr-auto"><h1 className="text-lg font-medium">IP address plan</h1><p className="mt-1 text-sm text-ink-2">Every address, sorted numerically.</p></div>
         <label><span className="label">VLAN</span>
-          <select className="input w-48" value={vlan} onChange={(e) => setVlan(e.target.value)}>
-            <option value="">All VLANs</option><option value="none">No VLAN</option>
-            {vlans.data?.map((v) => <option key={v.id} value={v.id}>{v.vlan_number} · {v.name}</option>)}
-          </select>
+          <Dropdown label="VLAN" className="w-48" value={vlan} onChange={setVlan}
+            options={[{ value: '', label: 'All VLANs' }, { value: 'none', label: 'No VLAN' }, ...(vlans.data ?? []).map((v) => ({ value: v.id, label: `${v.vlan_number} · ${v.name}` }))]} />
         </label>
         <label><span className="label">Device status</span>
-          <select className="input w-40" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Any</option>{DEVICE_STATUSES.map((s) => <option key={s}>{s}</option>)}
-          </select>
+          <Dropdown label="Device status" className="w-40" value={status} onChange={setStatus}
+            options={[{ value: '', label: 'Any' }, ...DEVICE_STATUSES.map((s) => ({ value: s, label: s, color: STATUS_COLOR[s] }))]} />
         </label>
       </div>
       {!rows.length ? <p className="text-sm text-ink-2">No IP addresses{vlan || status ? ' match these filters' : ' yet. Add them from a device’s Network tab'}.</p> : (

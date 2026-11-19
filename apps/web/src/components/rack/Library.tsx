@@ -8,6 +8,7 @@ import { toast } from '../../store/toast';
 import { Modal, confirmDialog } from '../ui';
 import { Icon } from '../Icon';
 import { SearchInput } from '../primitives';
+import { Dropdown } from '../Select';
 
 const GROUPS: { label: string; cats: DeviceCategory[] }[] = [
   { label: 'Network', cats: ['router', 'switch', 'ap', 'patch_panel'] },
@@ -131,21 +132,18 @@ function TemplateEditor({ template, onClose }: { template: DeviceTemplate | null
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <label className="col-span-2"><span className="label">Name</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></label>
         <label><span className="label">Category</span>
-          <select className="input" value={category} onChange={(e) => setCategory(e.target.value as DeviceCategory)}>
-            {DEVICE_CATEGORIES.map((c) => <option key={c} value={c}>{c.replace('_', ' ')}</option>)}
-          </select>
+          <Dropdown label="Category" value={category} onChange={(v) => setCategory(v as DeviceCategory)}
+            options={DEVICE_CATEGORIES.map((c) => ({ value: c, label: c.replace('_', ' ') }))} />
         </label>
         <label><span className="label">Form factor</span>
-          <select className="input" value={form} onChange={(e) => setForm(e.target.value as 'rack' | 'loose')}>
-            <option value="rack">Rack-mount</option><option value="loose">Loose</option>
-          </select>
+          <Dropdown label="Form factor" value={form} onChange={(v) => setForm(v as 'rack' | 'loose')}
+            options={[{ value: 'rack', label: 'Rack-mount' }, { value: 'loose', label: 'Loose' }]} />
         </label>
         <label><span className="label">Height (U)</span><input type="number" min={1} max={8} className="input" value={height} onChange={(e) => setHeight(Math.max(1, Math.min(8, Number(e.target.value) || 1)))} /></label>
         {form === 'loose' && (
           <label><span className="label">Width</span>
-            <select className="input" value={width} onChange={(e) => setWidth(Number(e.target.value))}>
-              <option value={0.5}>Half (shelf slot)</option><option value={1}>Full</option>
-            </select>
+            <Dropdown label="Width" value={String(width)} onChange={(v) => setWidth(Number(v))}
+              options={[{ value: '0.5', label: 'Half (shelf slot)' }, { value: '1', label: 'Full' }]} />
           </label>
         )}
       </div>
@@ -163,7 +161,7 @@ function TemplateEditor({ template, onClose }: { template: DeviceTemplate | null
             {ports.map((p, i) => (
               <tr key={i}>
                 <td><input className="input py-1" value={p.label} aria-label={`Port ${i + 1} label`} onChange={(e) => setPorts((ps) => ps.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} /></td>
-                <td><select className="input py-1" value={p.kind} aria-label={`Port ${i + 1} kind`} onChange={(e) => setPorts((ps) => ps.map((x, j) => (j === i ? { ...x, kind: e.target.value as PortKind } : x)))}>{PORT_KINDS.map((k) => <option key={k}>{k}</option>)}</select></td>
+                <td><Dropdown size="sm" label={`Port ${i + 1} kind`} value={p.kind} onChange={(v) => setPorts((ps) => ps.map((x, j) => (j === i ? { ...x, kind: v as PortKind } : x)))} options={PORT_KINDS.map((k) => ({ value: k, label: k }))} /></td>
                 <td><input type="number" className="input py-1" value={p.speed_mbps ?? ''} aria-label={`Port ${i + 1} speed`} onChange={(e) => setPorts((ps) => ps.map((x, j) => (j === i ? { ...x, speed_mbps: e.target.value ? Number(e.target.value) : null } : x)))} /></td>
                 <td><input type="checkbox" checked={p.poe} aria-label={`Port ${i + 1} PoE`} onChange={(e) => setPorts((ps) => ps.map((x, j) => (j === i ? { ...x, poe: e.target.checked } : x)))} /></td>
                 <td><button className="btn btn-ghost btn-sm" aria-label={`Remove port ${i + 1}`} onClick={() => setPorts((ps) => ps.filter((_, j) => j !== i))}><Icon name="close" size={12} /></button></td>

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { AuditEntry } from '@rackmap/shared';
 import { useFetch } from '../lib/useFetch';
 import { Icon } from '../components/Icon';
+import { Dropdown } from '../components/Select';
 
 /** The last 500 actions. Secret values are never written to the log. */
 export default function AuditPage() {
@@ -20,7 +21,7 @@ export default function AuditPage() {
           </div>
           <label><span className="label">Filter</span><input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Action or summary" /></label>
           <label><span className="label">Type</span>
-            <select className="input" value={type} onChange={(e) => setType(e.target.value)}><option value="">All</option>{types.map((t) => <option key={t}>{t}</option>)}</select>
+            <Dropdown label="Type" className="min-w-[140px]" value={type} onChange={setType} options={[{ value: '', label: 'All' }, ...types.map((t) => ({ value: t, label: t }))]} />
           </label>
           <button className="btn" onClick={() => void reload()} aria-label="Refresh"><Icon name="refresh" /></button>
         </div>

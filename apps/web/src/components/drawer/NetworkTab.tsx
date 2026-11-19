@@ -6,6 +6,7 @@ import { api } from '../../lib/api';
 import { toast } from '../../store/toast';
 import { Modal, confirmDialog } from '../ui';
 import { Icon } from '../Icon';
+import { Dropdown } from '../Select';
 
 export function NetworkTab({ device }: { device: Device }) {
   const { devices, links, select } = useLab();
@@ -126,21 +127,17 @@ function IpDialog({ device, ip, vlans, onClose, onSaved, onVlanCreated }: {
       <form onSubmit={submit} className="grid grid-cols-3 gap-3">
         <label className="col-span-2"><span className="label">Address</span><input className="input font-mono" value={f.address} onChange={(e) => set('address', e.target.value.trim())} placeholder="192.168.1.10" autoFocus required /></label>
         <label><span className="label">Prefix</span><input type="number" min={0} max={128} className="input" value={f.prefix_length} onChange={(e) => set('prefix_length', Number(e.target.value))} /></label>
-        <label><span className="label">Kind</span><select className="input" value={f.kind} onChange={(e) => set('kind', e.target.value)}>{IP_KINDS.map((k) => <option key={k}>{k}</option>)}</select></label>
+        <label><span className="label">Kind</span><Dropdown label="Kind" value={f.kind} onChange={(v) => set('kind', v)} options={IP_KINDS.map((k) => ({ value: k, label: k }))} /></label>
         <label className="col-span-2"><span className="label">VLAN</span>
           <div className="flex gap-1">
-            <select className="input" value={f.vlan_id} onChange={(e) => set('vlan_id', e.target.value)}>
-              <option value="">None</option>
-              {vlans.map((v) => <option key={v.id} value={v.id}>{v.vlan_number} · {v.name}{v.subnet ? ` (${v.subnet})` : ''}</option>)}
-            </select>
+            <Dropdown label="VLAN" value={f.vlan_id} onChange={(v) => set('vlan_id', v)}
+              options={[{ value: '', label: 'None' }, ...vlans.map((v) => ({ value: v.id, label: `${v.vlan_number} · ${v.name}`, hint: v.subnet ?? undefined }))]} />
             <button type="button" className="btn btn-icon" onClick={() => setNewVlan(true)} aria-label="New VLAN"><Icon name="plus" /></button>
           </div>
         </label>
         <label className="col-span-3"><span className="label">Port</span>
-          <select className="input" value={f.port_id} onChange={(e) => set('port_id', e.target.value)}>
-            <option value="">Not tied to a port</option>
-            {device.ports.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-          </select>
+          <Dropdown label="Port" value={f.port_id} onChange={(v) => set('port_id', v)}
+            options={[{ value: '', label: 'Not tied to a port' }, ...device.ports.map((p) => ({ value: p.id, label: p.label }))]} />
         </label>
         <label className="col-span-3"><span className="label">DNS name</span><input className="input" value={f.dns_name} onChange={(e) => set('dns_name', e.target.value)} /></label>
         <label className="col-span-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={f.is_primary} onChange={(e) => set('is_primary', e.target.checked)} /> Primary IP for this device</label>

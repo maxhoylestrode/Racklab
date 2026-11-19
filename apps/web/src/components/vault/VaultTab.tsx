@@ -7,6 +7,7 @@ import { useVault } from '../../store/vault';
 import { generatePassword, totp, secondsLeft } from '../../lib/totp';
 import { Modal, confirmDialog } from '../ui';
 import { Icon } from '../Icon';
+import { Dropdown } from '../Select';
 
 const REVEAL_MS = 15_000;
 const CLIPBOARD_CLEAR_MS = 30_000;
@@ -194,10 +195,8 @@ function CredentialDialog({ device, services, onClose, onSaved }: { device: Devi
       }}>
         <label className="col-span-2"><span className="label">Label</span><input className="input" value={f.label} onChange={(e) => set('label', e.target.value)} placeholder="iDRAC root" required autoFocus /></label>
         <label className="col-span-2"><span className="label">Belongs to</span>
-          <select className="input" value={f.owner} onChange={(e) => set('owner', e.target.value)}>
-            <option value={`d:${device.id}`}>{device.name} (device)</option>
-            {services.map((s) => <option key={s.id} value={`s:${s.id}`}>{s.name} (service)</option>)}
-          </select>
+          <Dropdown label="Belongs to" value={f.owner} onChange={(v) => set('owner', v)}
+            options={[{ value: `d:${device.id}`, label: device.name, hint: 'device' }, ...services.map((s) => ({ value: `s:${s.id}`, label: s.name, hint: 'service' }))]} />
         </label>
         <label><span className="label">Username</span><input className="input" value={f.username_plain} onChange={(e) => set('username_plain', e.target.value)} autoComplete="off" /></label>
         <label><span className="label">URL</span><input type="url" className="input" value={f.url} onChange={(e) => set('url', e.target.value)} placeholder="https://" /></label>

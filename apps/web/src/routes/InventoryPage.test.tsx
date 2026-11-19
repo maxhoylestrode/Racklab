@@ -119,7 +119,8 @@ describe('Inventory bulk actions', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select Alpha' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select Charlie' }), { shiftKey: true });
     expect(await screen.findByText('3 selected')).toBeTruthy();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Set status' }), { target: { value: 'offline' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Set status' }));
+    fireEvent.click(screen.getByRole('option', { name: /offline/ }));
     await waitFor(() => expect(server.patch).toHaveBeenCalledTimes(3));
     for (const id of ['a', 'b', 'c']) expect(server.patch).toHaveBeenCalledWith(`/devices/${id}`, { status: 'offline' });
     await waitFor(() => expect(useLab.getState().devices.every((d) => d.status === 'offline')).toBe(true));

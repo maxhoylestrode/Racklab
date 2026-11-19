@@ -4,6 +4,7 @@ import { useLab } from '../../store/lab';
 import { toast } from '../../store/toast';
 import { confirmDialog } from '../ui';
 import { Icon } from '../Icon';
+import { Dropdown } from '../Select';
 
 const SWATCHES = ['#3b82f6', '#22c55e', '#eab308', '#f97316', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#e5e7eb', '#111827'];
 
@@ -40,9 +41,8 @@ export function LinkInspector({ linkId }: { linkId: string }) {
       )}
       <div className="grid grid-cols-2 gap-3">
         <label><span className="label">Type</span>
-          <select className="input" value={link.cable_type} onChange={(e) => void save({ cable_type: e.target.value as CableType })}>
-            {CABLE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <Dropdown label="Cable type" value={link.cable_type} onChange={(v) => void save({ cable_type: v as CableType })}
+            options={CABLE_TYPES.map((t) => ({ value: t, label: t }))} />
         </label>
         <label><span className="label">Length (m)</span>
           <input className="input font-mono" type="number" min={0} step={0.1} value={length} onChange={(e) => setLength(e.target.value)}

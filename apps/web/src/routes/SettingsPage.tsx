@@ -10,16 +10,14 @@ import { StrengthMeter, confirmDialog, Modal } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PageHeader } from '../components/primitives';
 import { ProjectCustomiser } from '../components/projects/ProjectCustomiser';
+import { Dropdown } from '../components/Select';
 
 function ThemeSetting() {
   const { themePref, setTheme } = useUi();
   return (
     <label className="block"><span className="label">Theme</span>
-      <select className="input" value={themePref} onChange={(e) => setTheme(e.target.value as typeof themePref)}>
-        <option value="system">Follow system setting</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-      </select>
+      <Dropdown label="Theme" value={themePref} onChange={(v) => setTheme(v as typeof themePref)}
+        options={[{ value: 'system', label: 'Follow system setting' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }]} />
     </label>
   );
 }
@@ -55,9 +53,8 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <p className="flex items-center gap-2 text-sm text-ink"><span className={`chip ${status.unlocked ? 'chip-warn' : ''}`}><Icon name={status.unlocked ? 'unlock' : 'lock'} />{status.unlocked ? 'Unlocked' : 'Locked'}</span> Auto-locks after {s?.vault_auto_lock_minutes ?? 10} minutes of inactivity.</p>
               <label className="flex items-center gap-3 text-sm text-ink-2">Auto-lock after
-                <select className="input w-auto" value={s?.vault_auto_lock_minutes ?? 10} onChange={(e) => void save({ vault_auto_lock_minutes: Number(e.target.value) })}>
-                  {[1, 2, 5, 10].map((m) => <option key={m} value={m}>{m} minute{m === 1 ? '' : 's'}</option>)}
-                </select>
+                <Dropdown label="Auto-lock after" className="w-auto" value={String(s?.vault_auto_lock_minutes ?? 10)} onChange={(v) => void save({ vault_auto_lock_minutes: Number(v) })}
+                  options={[1, 2, 5, 10].map((m) => ({ value: String(m), label: `${m} minute${m === 1 ? '' : 's'}` }))} />
               </label>
               <ChangePassword kind="vault" />
             </div>
@@ -79,15 +76,15 @@ export default function SettingsPage() {
             </label>
             <ThemeSetting />
             <label className="block"><span className="label">Motion</span>
-              <select className="input" value={useUi.getState().reducedMotion} onChange={(e) => {
-                const v = e.target.value as Settings['reduced_motion'];
+              <Dropdown label="Motion" value={useUi.getState().reducedMotion} onChange={(x) => {
+                const v = x as Settings['reduced_motion'];
                 useUi.getState().setReducedMotion(v);
                 void save({ reduced_motion: v });
-              }}>
-                <option value="system">Follow system setting</option>
-                <option value="reduce">Reduce motion (no LED blink or animations)</option>
-                <option value="no-preference">Allow motion</option>
-              </select>
+              }} options={[
+                { value: 'system', label: 'Follow system setting' },
+                { value: 'reduce', label: 'Reduce motion (no LED blink or animations)' },
+                { value: 'no-preference', label: 'Allow motion' },
+              ]} />
             </label>
           </div>
         </Section>
