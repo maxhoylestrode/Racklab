@@ -278,3 +278,16 @@ Two briefs from the user, applied together: a light, flat "desk" restyle that ma
 - On phones the card shows the service count, and the panel's Services tab holds the list.
 - Data comes from the existing `GET /services` and `GET /ip-addresses`, refreshed whenever the device list changes. No API change.
 - Shelves are left out of the Inventory (rows, counts, the online pill and the quick-add template list). A device on a shelf still shows "Shelf 2 slot 1" as its position.
+
+## Projects: colour and customisation (requested 2026-11-19)
+
+- **Statuses and priorities are data, not enums.** Migration `0001_project_customisation` replaces the `project_status` and `project_priority` enums with the tables `project_statuses` (key, label, colour, kind, order) and `project_priorities` (key, label, colour, order). It seeds the six old values as ordinary rows with the same keys, so existing projects, exports and the seed lab keep working. `projects.status` and `projects.priority` are text foreign keys (`ON UPDATE CASCADE`). A status or priority is renamed by changing its label; its key never changes.
+- **A status's kind drives behaviour:** `todo`, `active` or `done`. A done status sets `completed_at`, leaves rack and inventory open counts, is never overdue, and its board column starts collapsed. Changing a status to or from done completes or reopens the projects in it.
+- **Defaults:** new projects go in the first column and get the middle priority, rounding toward less urgent (Medium for both High/Medium/Low and Urgent/High/Medium/Low).
+- **Deleting** a status or priority that projects still use, including archived ones, needs `?reassign_to=`. The last status or priority can't be deleted. The limits are 12 statuses and 10 priorities.
+- **Tag colours** live in `project_tag_colors`. A tag without a row shows as plain `#tag` text, as before.
+- **Per project:** an optional `color` (a stripe on the card, the progress bar and the top edge of the drawer) and an `icon` from `PROJECT_ICONS`.
+- **Shared vs per browser:** statuses, priorities and tag colours are shared, stored on the server and included in exports. Card fields, card density, list columns and which columns are collapsed are per-browser view settings (`useUi.projectDisplay`, in localStorage).
+- **Dropdowns:** the native selects for status, priority and the list filters are now `PillSelect`, a coloured listbox rendered in a portal (`FloatingPanel`) so table overflow and dialogs can't clip it. It takes arrow keys, Home/End, typeahead, Enter and Escape. An open picker takes Escape before the dialog it sits in. The card's "…" menu uses the same panel and now sets priority as well as status.
+- **Export/import:** exports include the three new tables. Older exports, which have none of them, import against this install's current statuses and priorities. EXPORT_VERSION stays 1.
+- **Endpoints:** `GET /api/project-meta`; `POST`, `PATCH` and `DELETE /api/project-meta/{statuses|priorities}/:key`; `PUT /api/project-meta/{statuses|priorities}/order`; `PUT` and `DELETE /api/project-meta/tags/:name`.

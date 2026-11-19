@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import {
   DEVICE_CATEGORIES, FORM_FACTORS, DEVICE_STATUSES, PORT_KINDS, CABLE_TYPES, IP_KINDS, SERVICE_KINDS, SERVICE_STATUSES,
-  PROJECT_STATUSES, PROJECT_PRIORITIES,
+  PROJECT_STATUS_KINDS, PROJECT_ICONS,
 } from './enums';
 
 // ---------- primitives ----------
@@ -200,30 +200,48 @@ export const projectLinkInputSchema = z.union([
   z.object({ device_id: uuid, service_id: z.undefined().optional() }),
   z.object({ service_id: uuid, device_id: z.undefined().optional() }),
 ]);
+const metaKey = z.string().trim().min(1).max(40);
 export const projectCreateSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(PROJECT_TITLE_MAX),
   description_markdown: z.string().max(100_000).default(''),
-  status: z.enum(PROJECT_STATUSES).default('not_started'),
-  priority: z.enum(PROJECT_PRIORITIES).default('medium'),
+  /** Omitted: the first status in board order. */
+  status: metaKey.optional(),
+  /** Omitted: the middle priority. */
+  priority: metaKey.optional(),
   due_date: isoDate.nullable().optional(),
+  color: hexColor.nullable().optional(),
+  icon: z.enum(PROJECT_ICONS).nullable().optional(),
   tags: tags.default([]),
   links: z.array(projectLinkInputSchema).max(50).default([]),
 });
 export const projectUpdateSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(PROJECT_TITLE_MAX),
   description_markdown: z.string().max(100_000),
-  status: z.enum(PROJECT_STATUSES),
-  priority: z.enum(PROJECT_PRIORITIES),
+  status: metaKey,
+  priority: metaKey,
   due_date: isoDate.nullable(),
+  color: hexColor.nullable(),
+  icon: z.enum(PROJECT_ICONS).nullable(),
   tags,
   archived: z.boolean(),
 }).partial();
 export const projectMoveSchema = z.object({
-  status: z.enum(PROJECT_STATUSES),
+  status: metaKey,
   sort_order: z.number().int().min(0),
 });
 export const projectTaskCreateSchema = z.object({ text: z.string().trim().min(1).max(500), done: z.boolean().default(false), sort_order: z.number().int().optional() });
 export const projectTaskUpdateSchema = z.object({ text: z.string().trim().min(1).max(500), done: z.boolean(), sort_order: z.number().int() }).partial();
+
+// ---------- project customisation ----------
+export const PROJECT_META_LABEL_MAX = 40;
+const metaLabel = z.string().trim().min(1, 'Name is required').max(PROJECT_META_LABEL_MAX);
+export const projectStatusCreateSchema = z.object({ label: metaLabel, color: hexColor, kind: z.enum(PROJECT_STATUS_KINDS).default('todo') });
+export const projectStatusUpdateSchema = z.object({ label: metaLabel, color: hexColor, kind: z.enum(PROJECT_STATUS_KINDS) }).partial();
+export const projectPriorityCreateSchema = z.object({ label: metaLabel, color: hexColor });
+export const projectPriorityUpdateSchema = projectPriorityCreateSchema.partial();
+export const projectMetaReorderSchema = z.object({ keys: z.array(metaKey).min(1).max(50) });
+export const projectMetaDeleteSchema = z.object({ reassign_to: metaKey.optional() });
+export const projectTagColorSchema = z.object({ color: hexColor });
 
 // ---------- settings ----------
 export const settingsUpdateSchema = z.object({

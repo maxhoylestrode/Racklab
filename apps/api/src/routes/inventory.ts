@@ -22,7 +22,8 @@ export function inventoryRoutes(ctx: AppContext): Router {
       db.execute(sql`
         select coalesce(pl.device_id, s.device_id) as device_id, count(distinct p.id)::int as n
         from project_links pl
-        join projects p on p.id = pl.project_id and p.status <> 'complete' and p.archived = false
+        join projects p on p.id = pl.project_id and p.archived = false
+        join project_statuses ps on ps.key = p.status and ps.kind <> 'done'
         left join services s on s.id = pl.service_id
         group by 1`),
       db.execute(sql`

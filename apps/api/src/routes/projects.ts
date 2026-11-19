@@ -7,7 +7,7 @@ import {
 import type { AppContext } from '../context';
 import type { DB } from '../db/client';
 import { ah, parse, badRequest } from '../errors';
-import { projects, projectLinks, projectTasks, devices, services } from '../db/schema';
+import { projects, projectLinks, projectTasks, devices, services, projectStatuses, projectPriorities } from '../db/schema';
 import { audit } from '../services/audit';
 import { idParam, one, defined, q } from './util';
 
@@ -63,8 +63,30 @@ async function renumber(t: DB, status: ProjectStatus) {
   for (const [i, c] of col.entries()) await t.update(projects).set({ sort_order: i }).where(eq(projects.id, c.id));
 }
 
-const completedAtFor = (from: ProjectStatus | null, to: ProjectStatus, now: Date, prev: Date | null) =>
-  to === 'complete' ? (from === 'complete' ? prev : now) : null;
+/** Kind of each status key, for completion rules. Unknown keys are a 400. */
+async function statusKinds(t: DB) {
+  const rows = await t.select({ key: projectStatuses.key, kind: projectStatuses.kind }).from(projectStatuses).orderBy(asc(projectStatuses.sort_order));
+  return { first: rows[0]?.key, kind: (k: string) => {
+    const r = rows.find((x) => x.key === k);
+    if (!r) throw badRequest(`Unknown status "${k}"`, 'unknown_status');
+    return r.kind;
+  } };
+}
+async function checkPriority(t: DB, key: string) {
+  const [p] = await t.select({ key: projectPriorities.key }).from(projectPriorities).where(eq(projectPriorities.key, key)).limit(1);
+  if (!p) throw badRequest(`Unknown priority "${key}"`, 'unknown_priority');
+}
+/** The middle level, rounding toward less urgent: Medium for High/Medium/Low and for Urgent/High/Medium/Low. */
+async function defaultPriority(t: DB) {
+  const rows = await t.select({ key: projectPriorities.key }).from(projectPriorities).orderBy(asc(projectPriorities.sort_order));
+  if (!rows.length) throw badRequest('Add a priority level first', 'no_priorities');
+  return rows[Math.floor(rows.length / 2)].key;
+}
+/** Open = not in a done-kind column. */
+const notDone = sql`${projects.status} not in (select key from project_statuses where kind = 'done')`;
+
+const completedAtFor = (fromDone: boolean, toDone: boolean, now: Date, prev: Date | null) =>
+  toDone ? (fromDone ? prev : now) : null;
 
 export function projectRoutes(ctx: AppContext): Router {
   const r = Router();
@@ -85,7 +107,7 @@ export function projectRoutes(ctx: AppContext): Router {
     }
     const rows = await db.select().from(projects).where(and(
       includeArchived ? undefined : eq(projects.archived, false),
-      openOnly ? ne(projects.status, 'complete') : undefined,
+      openOnly ? notDone : undefined,
       idFilter ? inArray(projects.id, idFilter) : undefined,
     )).orderBy(asc(projects.status), asc(projects.sort_order));
     res.json(await hydrate(db, rows));
@@ -96,7 +118,8 @@ export function projectRoutes(ctx: AppContext): Router {
     const rows: any = await db.execute(sql`
       select coalesce(pl.device_id, s.device_id) as device_id, count(distinct p.id)::int as open_count
       from project_links pl
-      join projects p on p.id = pl.project_id and p.status <> 'complete' and p.archived = false
+      join projects p on p.id = pl.project_id and p.archived = false
+      join project_statuses ps on ps.key = p.status and ps.kind <> 'done'
       left join services s on s.id = pl.service_id
       group by 1`);
     res.json(rows.rows ?? rows);
@@ -104,13 +127,20 @@ export function projectRoutes(ctx: AppContext): Router {
 
   r.post('/projects', ah(async (req, res) => {
     const body = parse(projectCreateSchema, req.body);
-    const { links: linkInputs, ...fields } = body;
+    const { links: linkInputs, ...rest } = body;
     for (const l of linkInputs) await checkLinkTarget(db, l);
     const row = await db.transaction(async (tx) => {
       const t = tx as unknown as DB;
-      const [{ m }] = await t.select({ m: max(projects.sort_order) }).from(projects).where(eq(projects.status, fields.status));
+      const kinds = await statusKinds(t);
+      const status = rest.status ?? kinds.first;
+      if (!status) throw badRequest('Add a status first', 'no_statuses');
+      const done = kinds.kind(status) === 'done';
+      const priority = rest.priority ?? await defaultPriority(t);
+      await checkPriority(t, priority);
+      const fields = { ...rest, status, priority };
+      const [{ m }] = await t.select({ m: max(projects.sort_order) }).from(projects).where(eq(projects.status, status));
       const p = one(await t.insert(projects).values({
-        ...fields, sort_order: (m ?? -1) + 1, completed_at: fields.status === 'complete' ? now() : null,
+        ...fields, sort_order: (m ?? -1) + 1, completed_at: done ? now() : null,
       }).returning());
       if (linkInputs.length) await t.insert(projectLinks).values(linkInputs.map((l) => ({ project_id: p.id, device_id: l.device_id ?? null, service_id: l.service_id ?? null })));
       return p;
@@ -131,8 +161,10 @@ export function projectRoutes(ctx: AppContext): Router {
       const t = tx as unknown as DB;
       const existing = one(await t.select().from(projects).where(eq(projects.id, id)));
       const set: Partial<typeof projects.$inferInsert> = defined(body);
+      if (body.priority) await checkPriority(t, body.priority);
       if (body.status && body.status !== existing.status) {
-        set.completed_at = completedAtFor(existing.status, body.status, now(), existing.completed_at);
+        const kinds = await statusKinds(t);
+        set.completed_at = completedAtFor(kinds.kind(existing.status) === 'done', kinds.kind(body.status) === 'done', now(), existing.completed_at);
         const [{ m }] = await t.select({ m: max(projects.sort_order) }).from(projects).where(eq(projects.status, body.status));
         set.sort_order = (m ?? -1) + 1;
       }
@@ -150,9 +182,10 @@ export function projectRoutes(ctx: AppContext): Router {
     const row = await db.transaction(async (tx) => {
       const t = tx as unknown as DB;
       const existing = one(await t.select().from(projects).where(eq(projects.id, id)));
+      const kinds = await statusKinds(t);
       await t.update(projects).set({
         status: body.status,
-        completed_at: completedAtFor(existing.status, body.status, now(), existing.completed_at),
+        completed_at: completedAtFor(kinds.kind(existing.status) === 'done', kinds.kind(body.status) === 'done', now(), existing.completed_at),
       }).where(eq(projects.id, id));
       await placeInColumn(t, id, body.status, body.sort_order);
       if (existing.status !== body.status) await renumber(t, existing.status);

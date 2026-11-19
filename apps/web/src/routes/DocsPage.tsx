@@ -7,7 +7,8 @@ import { useFetch } from '../lib/useFetch';
 import { api } from '../lib/api';
 import { NotesPanel } from '../components/drawer/NotesPanel';
 import { VlanDialog } from '../components/drawer/NetworkTab';
-import { ProjectDrawer, STATUS_LABEL } from '../components/projects/ProjectDrawer';
+import { ProjectDrawer } from '../components/projects/ProjectDrawer';
+import { useProjectMeta } from '../store/projectMeta';
 import { StatusDot, confirmDialog } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PageHeader, SummaryCard, TabPanel, Tabs } from '../components/primitives';
@@ -75,6 +76,7 @@ function GlobalSearch() {
   const services = useFetch<Service[]>('/services');
   const notes = useFetch<Note[]>('/notes');
   const projects = useFetch<Project[]>('/projects?include_archived=true');
+  const meta = useProjectMeta();
   const [project, setProject] = useState<string | null>(null);
   const [note, setNote] = useState<Note | null>(null);
   const needle = q.trim().toLowerCase();
@@ -116,7 +118,7 @@ function GlobalSearch() {
           <Group title="IP addresses" n={results.ips.length}>{results.ips.map((i) => <Row key={i.id} onClick={() => openDevice(i.device_id)}><span className="w-28 shrink-0 font-mono text-xs">{i.address}</span><span className="flex-1 truncate font-mono text-xs text-ink-2">{i.dns_name}</span><span className="truncate text-xs">{i.device_name}</span></Row>)}</Group>
           <Group title="Services" n={results.services.length}>{results.services.map((s) => <Row key={s.id} onClick={() => openDevice(s.device_id)}><StatusDot status={s.status} /><span className="flex-1">{s.name}</span><span className="text-xs text-ink-2">{s.kind} on {devName(s.device_id)}</span></Row>)}</Group>
           <Group title="Notes" n={results.notes.length}>{results.notes.map((n) => <Row key={n.id} onClick={() => (n.device_id ? openDevice(n.device_id) : setNote(n))}><Icon name="docs" className="text-ink-2" /><span className="flex-1">{n.title}</span><span className="text-xs text-ink-2">{n.device_id ? devName(n.device_id) : n.service_id ? 'service' : 'global'}</span></Row>)}</Group>
-          <Group title="Projects" n={results.projects.length}>{results.projects.map((p) => <Row key={p.id} onClick={() => setProject(p.id)}><Icon name="projects" className="text-ink-2" /><span className="flex-1">{p.title}</span><span className="text-xs text-ink-2">{p.archived ? 'Archived' : STATUS_LABEL[p.status]}</span></Row>)}</Group>
+          <Group title="Projects" n={results.projects.length}>{results.projects.map((p) => <Row key={p.id} onClick={() => setProject(p.id)}><Icon name="projects" className="text-ink-2" /><span className="flex-1">{p.title}</span><span className="text-xs text-ink-2">{p.archived ? 'Archived' : meta.status(p.status).label}</span></Row>)}</Group>
         </div>
       )}
       {project && <ProjectDrawer projectId={project} overlay onClose={() => { setProject(null); void projects.reload(); }} />}

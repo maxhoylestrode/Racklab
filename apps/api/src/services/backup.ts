@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
-import { PORT_KINDS, CABLE_TYPES, DEVICE_STATUSES, IP_KINDS, SERVICE_KINDS, SERVICE_STATUSES, PROJECT_STATUSES, PROJECT_PRIORITIES, DEVICE_CATEGORIES, FORM_FACTORS, portLayoutEntrySchema } from '@rackmap/shared';
+import { PORT_KINDS, CABLE_TYPES, DEVICE_STATUSES, IP_KINDS, SERVICE_KINDS, SERVICE_STATUSES, PROJECT_STATUS_KINDS, PROJECT_ICONS, DEVICE_CATEGORIES, FORM_FACTORS, portLayoutEntrySchema } from '@rackmap/shared';
 import type { DB } from '../db/client';
 import {
   racks, deviceTemplates, devices, ports, links, vlans, ipAddresses, services, notes, credentials, vaultMeta,
-  projects, projectLinks, projectTasks, appSettings,
+  projects, projectLinks, projectTasks, appSettings, projectStatuses, projectPriorities, projectTagColors,
 } from '../db/schema';
 import { badRequest } from '../errors';
 
@@ -17,11 +17,12 @@ const toJson = (rows: Record<string, unknown>[]) =>
 
 /** Full JSON export. Secrets stay encrypted (ciphertext + nonce, base64); vault_meta holds only wrapped keys. */
 export async function exportAll(db: DB) {
-  const [r, t, d, p, l, v, ip, s, n, c, vm, pr, pl, pt, st] = await Promise.all([
+  const [r, t, d, p, l, v, ip, s, n, c, vm, pr, pl, pt, st, ps, pp, tc] = await Promise.all([
     db.select().from(racks), db.select().from(deviceTemplates), db.select().from(devices), db.select().from(ports),
     db.select().from(links), db.select().from(vlans), db.select().from(ipAddresses), db.select().from(services),
     db.select().from(notes), db.select().from(credentials), db.select().from(vaultMeta), db.select().from(projects),
     db.select().from(projectLinks), db.select().from(projectTasks), db.select().from(appSettings),
+    db.select().from(projectStatuses), db.select().from(projectPriorities), db.select().from(projectTagColors),
   ]);
   return {
     format: EXPORT_FORMAT,
@@ -32,6 +33,7 @@ export async function exportAll(db: DB) {
       ip_addresses: toJson(ip).map((x) => ({ ...x, address: String(x.address).replace(/\/(32|128)$/, '') })),
       services: toJson(s), notes: toJson(n), credentials: toJson(c), vault_meta: toJson(vm), projects: toJson(pr),
       project_links: toJson(pl), project_tasks: toJson(pt), app_settings: toJson(st),
+      project_statuses: toJson(ps), project_priorities: toJson(pp), project_tag_colors: toJson(tc),
     },
   };
 }
@@ -85,11 +87,14 @@ const S = {
     recovery_kdf_params: z.any(), recovery_wrapped_data_key: b64s, recovery_wrapped_data_key_nonce: b64s, ...stamps,
   }),
   projects: z.object({
-    id, title: z.string().min(1).max(200), description_markdown: z.string(), status: z.enum(PROJECT_STATUSES), priority: z.enum(PROJECT_PRIORITIES),
-    due_date: str, sort_order: z.number().int(), tags: z.array(z.string()), archived: z.boolean().optional(), completed_at: z.string().nullable().optional(), ...stamps,
+    id, title: z.string().min(1).max(200), description_markdown: z.string(), status: z.string().min(1).max(40), priority: z.string().min(1).max(40),
+    due_date: str, color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional(), icon: z.enum(PROJECT_ICONS).nullable().optional(), sort_order: z.number().int(), tags: z.array(z.string()), archived: z.boolean().optional(), completed_at: z.string().nullable().optional(), ...stamps,
   }),
   project_links: z.object({ id, project_id: id, device_id: nid.optional(), service_id: nid.optional(), ...stamps }),
   project_tasks: z.object({ id, project_id: id, text: z.string(), done: z.boolean(), sort_order: z.number().int(), ...stamps }),
+  project_statuses: z.object({ key: z.string().min(1).max(40), label: z.string().min(1).max(40), color: z.string(), kind: z.enum(PROJECT_STATUS_KINDS), sort_order: z.number().int(), ...stamps }),
+  project_priorities: z.object({ key: z.string().min(1).max(40), label: z.string().min(1).max(40), color: z.string(), sort_order: z.number().int(), ...stamps }),
+  project_tag_colors: z.object({ name: z.string().min(1).max(40), color: z.string(), ...stamps }),
   app_settings: z.object({ id: z.literal(1), vault_auto_lock_minutes: z.number().int(), default_unit_height_px: z.number().int(), reduced_motion: z.string(), ...stamps }),
 };
 
@@ -102,7 +107,7 @@ export const importFileSchema = z.object({
 export type ImportFile = z.infer<typeof importFileSchema>;
 
 /** Referential checks across the whole file before anything is written. */
-function checkReferences(f: ImportFile, localBuiltins: Map<string, string>) {
+function checkReferences(f: ImportFile, localBuiltins: Map<string, string>, local: { statuses: string[]; priorities: string[] }) {
   const d = f.data;
   const set = (xs: { id: string }[]) => new Set(xs.map((x) => x.id));
   const tplIds = set(d.device_templates), devIds = set(d.devices), portIds = set(d.ports), rackIds = set(d.racks);
@@ -159,6 +164,13 @@ function checkReferences(f: ImportFile, localBuiltins: Map<string, string>) {
     need(!x.service_id || svcIds.has(x.service_id), 'A project link references an unknown service');
   }
   for (const x of d.project_tasks) need(projIds.has(x.project_id), 'A project task references an unknown project');
+  // Exports from before custom statuses carry none: their projects must fit this install's statuses and priorities.
+  const statusKeys = new Set(d.project_statuses.length ? d.project_statuses.map((x) => x.key) : local.statuses);
+  const priorityKeys = new Set(d.project_priorities.length ? d.project_priorities.map((x) => x.key) : local.priorities);
+  for (const x of d.projects) {
+    need(statusKeys.has(x.status), `Project ${x.title} has an unknown status ${x.status}`);
+    need(priorityKeys.has(x.priority), `Project ${x.title} has an unknown priority ${x.priority}`);
+  }
   if (errs.length) throw badRequest('The import file is inconsistent', 'import_invalid', { errors: errs });
 }
 
@@ -175,7 +187,10 @@ export async function importAll(db: DB, raw: unknown) {
   const f = parsed.data;
   const builtins = await db.select({ id: deviceTemplates.id, key: deviceTemplates.key }).from(deviceTemplates).where(eq(deviceTemplates.is_builtin, true));
   const localBuiltins = new Map(builtins.map((b) => [b.key, b.id]));
-  checkReferences(f, localBuiltins);
+  const [localStatuses, localPriorities] = await Promise.all([
+    db.select({ key: projectStatuses.key }).from(projectStatuses), db.select({ key: projectPriorities.key }).from(projectPriorities),
+  ]);
+  checkReferences(f, localBuiltins, { statuses: localStatuses.map((x) => x.key), priorities: localPriorities.map((x) => x.key) });
 
   const tplMap = new Map<string, string>();
   for (const t of f.data.device_templates) tplMap.set(t.id, t.is_builtin ? localBuiltins.get(t.key)! : t.id);
@@ -227,6 +242,16 @@ export async function importAll(db: DB, raw: unknown) {
       notes_ciphertext: unb64(c.notes_ciphertext), notes_nonce: unb64(c.notes_nonce),
       last_revealed_at: date(c.last_revealed_at) ?? null,
     })));
+    if (d.project_statuses.length) {
+      await t.delete(projectStatuses);
+      await ins(projectStatuses, d.project_statuses.map(withDates));
+      await t.delete(projectTagColors);
+      await ins(projectTagColors, d.project_tag_colors.map(withDates));
+    }
+    if (d.project_priorities.length) {
+      await t.delete(projectPriorities);
+      await ins(projectPriorities, d.project_priorities.map(withDates));
+    }
     await ins(projects, d.projects.map((p) => ({ ...withDates(p), completed_at: date(p.completed_at) ?? null })));
     await ins(projectLinks, d.project_links.map(withDates));
     await ins(projectTasks, d.project_tasks.map(withDates));

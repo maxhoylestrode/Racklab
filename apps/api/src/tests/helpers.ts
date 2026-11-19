@@ -60,6 +60,7 @@ export function api(env: TestEnv) {
     get: (url: string) => env.agent.get(url),
     post: (url: string, body?: unknown) => env.agent.post(url).set(h).send(body as any),
     patch: (url: string, body?: unknown) => env.agent.patch(url).set(h).send(body as any),
+    put: (url: string, body?: unknown) => env.agent.put(url).set(h).send(body as any),
     del: (url: string) => env.agent.delete(url).set(h),
   };
 }

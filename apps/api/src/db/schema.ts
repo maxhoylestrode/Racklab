@@ -4,7 +4,7 @@ import {
 import { sql } from 'drizzle-orm';
 import {
   DEVICE_CATEGORIES, FORM_FACTORS, DEVICE_STATUSES, PORT_KINDS, CABLE_TYPES, IP_KINDS, SERVICE_KINDS, SERVICE_STATUSES,
-  PROJECT_STATUSES, PROJECT_PRIORITIES, type PortLayoutEntry,
+  type PortLayoutEntry,
 } from '@rackmap/shared';
 import type { KdfParams } from '../crypto/vault';
 
@@ -21,8 +21,6 @@ export const cableType = pgEnum('cable_type', CABLE_TYPES);
 export const ipKind = pgEnum('ip_kind', IP_KINDS);
 export const serviceKind = pgEnum('service_kind', SERVICE_KINDS);
 export const serviceStatus = pgEnum('service_status', SERVICE_STATUSES);
-export const projectStatus = pgEnum('project_status', PROJECT_STATUSES);
-export const projectPriority = pgEnum('project_priority', PROJECT_PRIORITIES);
 
 const id = () => uuid('id').primaryKey().defaultRandom();
 const stamps = () => ({
@@ -242,14 +240,46 @@ export const auditLog = pgTable('audit_log', {
   summary: text('summary').notNull().default(''),
 }, (t) => [index('audit_log_at_idx').on(t.at)]);
 
+/** User-defined board columns. key is stable (projects reference it); label and colour are editable. */
+export const projectStatuses = pgTable('project_statuses', {
+  key: text('key').primaryKey(),
+  label: text('label').notNull(),
+  color: text('color').notNull(),
+  kind: text('kind').notNull().default('todo'),
+  sort_order: integer('sort_order').notNull().default(0),
+  ...stamps(),
+}, (t) => [
+  check('project_statuses_kind_ck', sql`${t.kind} in ('todo', 'active', 'done')`),
+  check('project_statuses_label_ck', sql`char_length(${t.label}) between 1 and 40`),
+]);
+
+/** User-defined priority levels. sort_order 0 is the most urgent. */
+export const projectPriorities = pgTable('project_priorities', {
+  key: text('key').primaryKey(),
+  label: text('label').notNull(),
+  color: text('color').notNull(),
+  sort_order: integer('sort_order').notNull().default(0),
+  ...stamps(),
+}, (t) => [check('project_priorities_label_ck', sql`char_length(${t.label}) between 1 and 40`)]);
+
+/** Colour per tag name. Tags without a row render neutral. */
+export const projectTagColors = pgTable('project_tag_colors', {
+  name: text('name').primaryKey(),
+  color: text('color').notNull(),
+  ...stamps(),
+});
+
 export const projects = pgTable('projects', {
   id: id(),
   title: text('title').notNull(),
   description_markdown: text('description_markdown').notNull().default(''),
-  status: projectStatus('status').notNull().default('not_started'),
-  priority: projectPriority('priority').notNull().default('medium'),
+  status: text('status').notNull().references(() => projectStatuses.key, { onUpdate: 'cascade' }),
+  priority: text('priority').notNull().references(() => projectPriorities.key, { onUpdate: 'cascade' }),
   /** ISO date (YYYY-MM-DD) */
   due_date: text('due_date'),
+  /** Optional accent colour (#rrggbb) and icon name shown on the card. */
+  color: text('color'),
+  icon: text('icon'),
   sort_order: integer('sort_order').notNull().default(0),
   tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
   archived: boolean('archived').notNull().default(false),

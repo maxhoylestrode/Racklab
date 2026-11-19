@@ -188,7 +188,8 @@ export function Dialog({ open, onClose, title, description, children, width = 'm
       el?.focus();
     }, 20);
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+      // An open picker (FloatingPanel) takes Escape first and closes itself, not the dialog.
+      if (e.key === 'Escape') { if (document.querySelector('[data-floating]')) return; e.stopPropagation(); onClose(); }
       if (e.key === 'Tab' && ref.current) {
         const f = [...ref.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((x) => !x.hasAttribute('disabled'));
         if (!f.length) return;
@@ -290,7 +291,7 @@ export function PageHeader({ title, description, actions, children }: { title: s
 
 // ---------------------------------------------------------------- Summary card (the one teal card per screen) with real-data bars
 export function SummaryCard({ label, value, of, caption, bars }: {
-  label: string; value: number; of?: number; caption: ReactNode; bars: { label: string; value: number }[];
+  label: string; value: number; of?: number; caption: ReactNode; bars: { label: string; value: number; color?: string }[];
 }) {
   const max = Math.max(1, ...bars.map((b) => b.value));
   return (
@@ -304,7 +305,7 @@ export function SummaryCard({ label, value, of, caption, bars }: {
       <div className="mt-4 flex h-12 items-end gap-1" role="list" aria-label={`${label} breakdown`}>
         {bars.map((b) => (
           <div key={b.label} role="listitem" aria-label={`${b.label}: ${b.value}`} className="flex flex-1 flex-col items-center gap-1" title={`${b.label}: ${b.value}`}>
-            <div className="w-full rounded-sm bg-current" style={{ height: `${Math.max(4, (b.value / max) * 40)}px`, opacity: b.value ? 0.9 : 0.25 }} />
+            <div className="w-full rounded-sm bg-current" style={{ height: `${Math.max(4, (b.value / max) * 40)}px`, opacity: b.value ? 0.9 : 0.25, ...(b.color ? { backgroundColor: b.color } : {}) }} />
           </div>
         ))}
       </div>

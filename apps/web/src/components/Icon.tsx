@@ -4,6 +4,8 @@ import {
   Eye, EyeOff, FileText, GripVertical, History, ImageDown, KeyRound, Link2, List, Lock, LockOpen, LogOut, Menu, Minus, Moon,
   Network, Pencil, Pin, Plus, Spline, Printer, Redo2, RotateCw, Search, Server, Settings, SquareKanban, Star, Sun, Trash2,
   TriangleAlert, Undo2, Upload, X, Router, Cpu, Laptop, Monitor, Rows3, HardDrive, BatteryCharging, Wifi, EthernetPort, Box,
+  Wrench, Hammer, Rocket, Shield, Database, Cloud, Globe, Terminal, Code, Bug, Zap, FlaskConical, Package, BookOpen, House, Camera,
+  Film, Music, Gamepad2, SlidersHorizontal, Palette, ArrowUp, ArrowDown, CircleSlash,
 } from 'lucide-react';
 
 /** Name -> Lucide icon. One stroke width (1.5) and two sizes (16, 20) across the app. */
@@ -64,6 +66,31 @@ const ICONS = {
   ap: Wifi,
   switch: EthernetPort,
   device: Box,
+  // Project icons (PROJECT_ICONS) and customisation controls.
+  wrench: Wrench,
+  hammer: Hammer,
+  rocket: Rocket,
+  shield: Shield,
+  database: Database,
+  cloud: Cloud,
+  globe: Globe,
+  terminal: Terminal,
+  code: Code,
+  bug: Bug,
+  zap: Zap,
+  flask: FlaskConical,
+  package: Package,
+  book: BookOpen,
+  home: House,
+  camera: Camera,
+  film: Film,
+  music: Music,
+  gamepad: Gamepad2,
+  sliders: SlidersHorizontal,
+  palette: Palette,
+  arrowUp: ArrowUp,
+  arrowDown: ArrowDown,
+  none: CircleSlash,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

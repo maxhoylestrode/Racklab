@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { PROJECT_PRIORITIES, PROJECT_STATUSES, PROJECT_TITLE_MAX, type Project, type ProjectPriority, type ProjectStatus, type ProjectTask } from '@rackmap/shared';
+import { PROJECT_TITLE_MAX, type Project, type ProjectMeta, type ProjectTask } from '@rackmap/shared';
 import { api } from '../../lib/api';
 import { toast } from '../../store/toast';
 import { useFetch } from '../../lib/useFetch';
@@ -10,8 +10,8 @@ import { confirmDialog } from '../ui';
 import { Icon } from '../Icon';
 import { LinkPicker } from './LinkPicker';
 import { panelTransition } from '../primitives';
-
-export const STATUS_LABEL: Record<ProjectStatus, string> = { not_started: 'Not started', in_progress: 'In progress', complete: 'Complete' };
+import { useProjectMeta, useProjectMetaStore } from '../../store/projectMeta';
+import { ColorPicker, IconPicker, PillSelect, TagChip } from './controls';
 
 /** Project detail drawer: editable fields, markdown description, checklist and links. */
 export function ProjectDrawer({ projectId, onClose, onChanged, overlay }: { projectId: string; onClose: () => void; onChanged?: (p: Project | null) => void; overlay?: boolean }) {
@@ -22,6 +22,8 @@ export function ProjectDrawer({ projectId, onClose, onChanged, overlay }: { proj
   const [tags, setTags] = useState('');
   const [newTask, setNewTask] = useState('');
   const { select } = useLab();
+  const meta = useProjectMeta();
+  const runMeta = useProjectMetaStore((s) => s.run);
   useEffect(() => { if (p) { setTitle(p.title); setDesc(p.description_markdown); setTags(p.tags.join(', ')); } }, [p?.id, p?.updated_at]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape' && !(e.target as HTMLElement).closest('input,textarea,[role=dialog]')) onClose(); };
@@ -47,30 +49,47 @@ export function ProjectDrawer({ projectId, onClose, onChanged, overlay }: { proj
     >
       {!p ? <div className="p-4 text-sm text-ink-2">Loading…</div> : (
         <>
-          <header className="flex items-center gap-2 border-b border-line px-3 py-3">
+          <header className="flex items-center gap-2 border-b border-line px-3 py-3"
+            style={p.color ? { boxShadow: `inset 0 3px 0 ${p.color}` } : undefined}>
+            <IconPicker value={p.icon} color={p.color} onChange={(icon) => void patch({ icon })} />
             <input className="input h-9 flex-1 border-transparent bg-transparent text-md font-medium hover:border-line-strong" value={title} maxLength={PROJECT_TITLE_MAX} aria-label="Project title"
               onChange={(e) => setTitle(e.target.value)} onBlur={() => { if (title.trim() && title !== p.title) void patch({ title: title.trim() }); else setTitle(p.title); }} />
             <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Close project"><Icon name="close" size={14} /></button>
           </header>
           <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-4">
-            <div className="grid grid-cols-3 gap-3">
-              <label><span className="label">Status</span>
-                <select className="input" value={p.status} onChange={(e) => void patch({ status: e.target.value as ProjectStatus })}>
-                  {PROJECT_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-                </select>
-              </label>
-              <label><span className="label">Priority</span>
-                <select className="input" value={p.priority} onChange={(e) => void patch({ priority: e.target.value as ProjectPriority })}>
-                  {PROJECT_PRIORITIES.map((s) => <option key={s}>{s}</option>)}
-                </select>
-              </label>
+            <div className="grid grid-cols-2 gap-3">
+              <div><span className="label">Status</span>
+                <PillSelect variant="field" label="Status" value={p.status} onChange={(status) => void patch({ status })}
+                  options={meta.statuses.map((s) => ({ value: s.key, label: s.label, color: s.color }))} />
+              </div>
+              <div><span className="label">Priority</span>
+                <PillSelect variant="field" label="Priority" value={p.priority} onChange={(priority) => void patch({ priority })}
+                  options={meta.priorities.map((s) => ({ value: s.key, label: s.label, color: s.color }))} />
+              </div>
               <label><span className="label">Due</span><input type="date" className="input" value={p.due_date ?? ''} onChange={(e) => void patch({ due_date: e.target.value || null })} /></label>
+              <div><span className="label">Card colour</span>
+                <div className="flex h-9 items-center gap-2">
+                  <ColorPicker allowNone label="Card colour" value={p.color} onChange={(color) => void patch({ color })} />
+                  <span className="text-xs text-ink-2">{p.color ? 'Stripe on the card' : 'None'}</span>
+                </div>
+              </div>
             </div>
             {p.completed_at && <p className="-mt-3 text-xs text-ok">Completed {new Date(p.completed_at).toLocaleDateString()}</p>}
             <label className="block"><span className="label">Tags</span>
               <input className="input" value={tags} placeholder="comma separated" onChange={(e) => setTags(e.target.value)}
                 onBlur={() => { const next = [...new Set(tags.split(',').map((t) => t.trim()).filter(Boolean))]; if (next.join() !== p.tags.join()) void patch({ tags: next }); }} />
             </label>
+            {p.tags.length > 0 && (
+              <ul className="-mt-3 flex flex-wrap gap-x-3 gap-y-2" aria-label="Tag colours">
+                {p.tags.map((t) => (
+                  <li key={t} className="inline-flex items-center gap-1.5">
+                    <ColorPicker size="sm" allowNone label={`Colour for #${t}`} value={meta.tagColor(t)}
+                      onChange={(c) => void runMeta(() => c ? api.put<ProjectMeta>(`/project-meta/tags/${encodeURIComponent(t)}`, { color: c }) : api.del<ProjectMeta>(`/project-meta/tags/${encodeURIComponent(t)}`))} />
+                    <TagChip tag={t} color={meta.tagColor(t)} />
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <section>
               <div className="mb-1 flex items-center justify-between">

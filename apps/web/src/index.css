@@ -156,6 +156,26 @@
   .chip-ok { color: rgb(var(--ok-rgb)); background: rgb(var(--ok-rgb) / 0.08); border-color: rgb(var(--ok-rgb) / 0.25); }
   .chip-warn { color: rgb(var(--warn-rgb)); background: rgb(var(--warn-rgb) / 0.08); border-color: rgb(var(--warn-rgb) / 0.28); }
   .chip-bad { color: rgb(var(--bad-rgb)); background: rgb(var(--bad-rgb) / 0.07); border-color: rgb(var(--bad-rgb) / 0.28); }
+  /*
+   * User-coloured pills (project statuses, priorities, tags). --c is the user's colour; text is mixed toward
+   * the ink so it stays readable on both themes, fill and border are faint washes of the same hue.
+   */
+  .pill {
+    @apply inline-flex h-6 max-w-full shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2 text-xs font-medium;
+    color: color-mix(in oklab, var(--c, rgb(var(--unknown-rgb))) 70%, rgb(var(--ink-rgb)));
+    background: color-mix(in oklab, var(--c, rgb(var(--unknown-rgb))) 13%, transparent);
+    border-color: color-mix(in oklab, var(--c, rgb(var(--unknown-rgb))) 32%, transparent);
+  }
+  .pill-sm { @apply h-5 gap-1 px-1.5; }
+  button.pill { transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
+  button.pill:hover { background: color-mix(in oklab, var(--c, rgb(var(--unknown-rgb))) 22%, transparent); border-color: color-mix(in oklab, var(--c, rgb(var(--unknown-rgb))) 50%, transparent); }
+  .pill-dot { @apply inline-block h-2 w-2 shrink-0 rounded-full; background: var(--c, rgb(var(--unknown-rgb))); }
+  /* A colour swatch button (pickers). */
+  .swatch { @apply inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border; background: var(--c); border-color: color-mix(in oklab, var(--c) 60%, rgb(var(--ink-rgb))); }
+  .swatch[aria-pressed='true'], .swatch[aria-checked='true'] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--c); }
+  /* Project card accent: a stripe down the left edge in the project's colour. */
+  .kanban-card[data-accent]::before { content: ''; position: absolute; left: -1px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--card-c); }
+
   .kbd { @apply inline-flex h-5 items-center rounded-sm border px-1 font-mono text-xs; border-color: var(--line-strong); color: var(--ink-2); background: var(--panel); }
 
   /* Icon tile: 28px rounded square holding a row's icon. */

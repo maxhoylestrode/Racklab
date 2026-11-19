@@ -21,6 +21,28 @@ export type Theme = 'dark' | 'light';
 /** The stored preference: an explicit theme, or follow the operating system. */
 export type ThemePref = Theme | 'system';
 export type ProjectsView = 'board' | 'list';
+export const CARD_FIELDS = { icon: 'Icon', priority: 'Priority', due: 'Due date', links: 'Linked devices', tags: 'Tags', checklist: 'Checklist progress', description: 'Description preview' } as const;
+export const LIST_COLUMNS = { status: 'Status', priority: 'Priority', links: 'Linked to', due: 'Due', tags: 'Tags', progress: 'Checklist', updated: 'Updated' } as const;
+export type CardField = keyof typeof CARD_FIELDS;
+export type ListColumn = keyof typeof LIST_COLUMNS;
+export interface ProjectDisplay {
+  cardFields: Record<CardField, boolean>;
+  density: 'comfortable' | 'compact';
+  listColumns: Record<ListColumn, boolean>;
+  /** Per status key: true collapsed, false expanded. Unset: done-kind columns start collapsed. */
+  collapsed: Record<string, boolean>;
+}
+export const DEFAULT_PROJECT_DISPLAY: ProjectDisplay = {
+  cardFields: { icon: true, priority: true, due: true, links: true, tags: true, checklist: true, description: false },
+  density: 'comfortable',
+  listColumns: { status: true, priority: true, links: true, due: true, tags: true, progress: true, updated: true },
+  collapsed: {},
+};
+function loadDisplay(): ProjectDisplay {
+  const v = load<Partial<ProjectDisplay>>('projectDisplay', {});
+  const d = DEFAULT_PROJECT_DISPLAY;
+  return { ...d, ...v, cardFields: { ...d.cardFields, ...v.cardFields }, listColumns: { ...d.listColumns, ...v.listColumns }, collapsed: { ...v.collapsed } };
+}
 
 interface UiState {
   /** The theme in effect. */
@@ -32,6 +54,8 @@ interface UiState {
   dimUnrelated: boolean;
   showBadges: boolean;
   projectsView: ProjectsView;
+  projectDisplay: ProjectDisplay;
+  setProjectDisplay: (fn: (d: ProjectDisplay) => ProjectDisplay) => void;
   reducedMotion: 'system' | 'reduce' | 'no-preference';
   search: string;
   /** One-shot request to scroll a device into view in another view (Show in rack / Show in inventory). */
@@ -61,6 +85,8 @@ export const useUi = create<UiState>((set) => ({
   dimUnrelated: load('dimUnrelated', false),
   showBadges: load('showBadges', true),
   projectsView: load<ProjectsView>('projectsView', 'board'),
+  projectDisplay: loadDisplay(),
+  setProjectDisplay: (fn) => set((s) => { const projectDisplay = fn(s.projectDisplay); save('projectDisplay', projectDisplay); return { projectDisplay }; }),
   reducedMotion: load('reducedMotion', 'system'),
   search: '',
   reveal: null,

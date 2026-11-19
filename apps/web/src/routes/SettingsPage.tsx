@@ -9,6 +9,7 @@ import { useUi, UNIT_MIN, UNIT_MAX } from '../store/ui';
 import { StrengthMeter, confirmDialog, Modal } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { PageHeader } from '../components/primitives';
+import { ProjectCustomiser } from '../components/projects/ProjectCustomiser';
 
 function ThemeSetting() {
   const { themePref, setTheme } = useUi();
@@ -47,7 +48,7 @@ export default function SettingsPage() {
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-4xl space-y-4">
-        <PageHeader title="Settings" description="Vault, passwords, display and backups." />
+        <PageHeader title="Settings" description="Vault, passwords, display, projects and backups." />
 
         <Section title="Vault" desc={<>The vault encrypts passwords, TOTP seeds and private notes with a key only your vault master password (or recovery phrase) can unlock. Usernames, IPs, URLs and ordinary notes are <strong>not</strong> encrypted.</>}>
           {!status ? null : !status.configured ? <VaultSetup onDone={() => void refresh()} /> : (
@@ -89,6 +90,10 @@ export default function SettingsPage() {
               </select>
             </label>
           </div>
+        </Section>
+
+        <Section title="Projects" desc="Board columns, priority levels and tag colours. Card and list layout lives under View on the Projects page.">
+          <ProjectCustomiser />
         </Section>
 
         <Section title="Backup and restore" desc="The JSON export holds the whole lab. Secrets stay encrypted, so restoring it needs the vault master password from the time of export. Nightly backups are also written on the server.">

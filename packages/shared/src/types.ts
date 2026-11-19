@@ -1,5 +1,5 @@
 import type {
-  DeviceCategory, FormFactor, DeviceStatus, PortKind, CableType, IpKind, ServiceKind, ServiceStatus, ProjectStatus, ProjectPriority,
+  DeviceCategory, FormFactor, DeviceStatus, PortKind, CableType, IpKind, ServiceKind, ServiceStatus, ProjectStatus, ProjectPriority, ProjectStatusKind, ProjectIcon,
   PortLayoutEntry,
 } from './enums';
 
@@ -62,9 +62,15 @@ export interface ProjectLink {
 export interface ProjectTask extends Stamps { id: string; project_id: string; text: string; done: boolean; sort_order: number }
 export interface Project extends Stamps {
   id: string; title: string; description_markdown: string; status: ProjectStatus; priority: ProjectPriority; due_date: string | null;
-  sort_order: number; tags: string[]; archived: boolean; completed_at: string | null;
+  color: string | null; icon: ProjectIcon | null; sort_order: number; tags: string[]; archived: boolean; completed_at: string | null;
   links: ProjectLink[]; tasks: ProjectTask[]; task_progress: { done: number; total: number };
 }
+export interface ProjectStatusDef { key: ProjectStatus; label: string; color: string; kind: ProjectStatusKind; sort_order: number }
+/** sort_order 0 is the most urgent. */
+export interface ProjectPriorityDef { key: ProjectPriority; label: string; color: string; sort_order: number }
+export interface ProjectTagColor { name: string; color: string }
+/** GET /api/projects/meta: everything the board needs to colour and order itself. */
+export interface ProjectMeta { statuses: ProjectStatusDef[]; priorities: ProjectPriorityDef[]; tag_colors: ProjectTagColor[] }
 export interface ProjectBadge { device_id: string; open_count: number }
 
 export interface AuditEntry { id: number; at: string; action: string; entity_type: string; entity_id: string | null; summary: string }
